@@ -380,7 +380,7 @@ Wenn du das Arbeitsverzeichnis auf `/` setzt, erhält die KI **vollen Root-Zugri
 ## 🐛 Bekannte Einschränkungen (v0.0.1 Beta)
 
 - ⚠️ **Kein natives SSL/HTTPS**: Nutze Nginx/Apache als Reverse Proxy (siehe Anleitung oben)
-- ⚠️ **IPv6-Priorität**: Manche günstige VPS-Hoster (z.B. 24fire) haben fehlerhafte IPv4-Routing-Konfiguration. Dann ist der Server nur via IPv6 erreichbar: `http://[2a12:de40:21:4143::]`
+- ⚠️ **IPv6-Priorität**: Manche günstige VPS-Hoster haben fehlerhafte IPv4-Routing-Konfiguration. Dann ist der Server nur via IPv6 erreichbar: `http://[2a12:de40:21:4143::]`
 - 🔄 **Sessions überleben keinen RAM-Verlust**: Bei Server-Absturz (nicht bei normalem Neustart) gehen aktive Sessions verloren
 - 📝 **Große Dateien**: Context-Upload ist auf ~15KB pro Datei begrenzt (API-Token-Limit)
 
