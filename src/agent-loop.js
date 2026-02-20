@@ -1,4 +1,4 @@
-// Feature: Root-Modus + Sicherheits-Check
+// Fix: Nachricht nur 1x senden (nicht bei jedem Loop!)
 const { callLLM } = require('./api-providers');
 const { exec } = require('child_process');
 const fs = require('fs');
@@ -14,7 +14,6 @@ function runAgent(sessionId, config, logCallback, chatCallback) {
         webDirectory = '/var/www/html';
     }
     
-    // Root-Modus Warnung
     const rootModeInfo = allowRoot ? `
 🔴 ROOT-MODUS AKTIV 🔴
 Du hast volle System-Kontrolle:
@@ -111,7 +110,8 @@ REGELN:
         webDirectory,
         emptyResponseCount: 0,
         filesCreatedThisRound: 0,
-        allowRoot: allowRoot || false
+        allowRoot: allowRoot || false,
+        lastChatMessage: null
     };
 
     activeSessions.set(sessionId, session);
@@ -157,8 +157,12 @@ async function agentLoop(sessionId) {
         chatMessage = chatMessage.replace(/```[\s\S]*?```/g, '');
         
         chatMessage = chatMessage.trim();
-        if (chatMessage) {
+        
+        // WICHTIG: Sende Nachricht NUR EINMAL!
+        // Nicht bei jedem Korrektur-Loop wiederholen
+        if (chatMessage && chatMessage !== session.lastChatMessage) {
             chatCallback('ai', chatMessage);
+            session.lastChatMessage = chatMessage;
         }
 
         const isDone = response.includes('✅') || 
@@ -172,7 +176,6 @@ async function agentLoop(sessionId) {
             hasActions = true;
             const command = match[1].trim();
             
-            // SICHERHEITS-CHECK
             const isDangerous = checkDangerousCommand(command);
             
             if (isDangerous && !session.allowRoot) {
@@ -181,7 +184,11 @@ async function agentLoop(sessionId) {
                     role: 'user', 
                     content: `❌ FEHLER: Befehl blockiert (benötigt Root-Rechte):\n${command}\n\nDieser Befehl ist gefährlich und benötigt Root-Modus. Im Normal-Modus kannst du nur Dateien erstellen/lesen/schreiben.` 
                 });
-                chatCallback('ai', '❌ Befehl blockiert - benötigt Root-Rechte');
+                // Zeige Fehler nur 1x
+                if (session.lastChatMessage !== '❌ Befehl blockiert - benötigt Root-Rechte') {
+                    chatCallback('ai', '❌ Befehl blockiert - benötigt Root-Rechte');
+                    session.lastChatMessage = '❌ Befehl blockiert - benötigt Root-Rechte';
+                }
                 continue;
             }
             
@@ -230,7 +237,11 @@ async function agentLoop(sessionId) {
             if (session.correctionAttempts > 2) {
                 session.isPaused = true;
                 logCallback(`❌ Abgebrochen`);
-                chatCallback('ai', '❌ Model versteht Aufgabe nicht. Nutze stärkeres Model (z.B. llama-3.3-70b-versatile).');
+                // Fehlermeldung nur 1x
+                if (session.lastChatMessage !== '❌ Model versteht Aufgabe nicht') {
+                    chatCallback('ai', '❌ Model versteht Aufgabe nicht. Nutze stärkeres Model (z.B. llama-3.3-70b-versatile).');
+                    session.lastChatMessage = '❌ Model versteht Aufgabe nicht';
+                }
                 return;
             }
             
@@ -240,6 +251,7 @@ async function agentLoop(sessionId) {
                 content: `❌ DU HAST KEINE BEFEHLE AUSGEFÜHRT!\n\nNutze <bash> Tags:\n<bash>cat > /root/datei.py << 'EOF'\nCODE\nEOF\n</bash>\n\nVersuche es NOCHMAL!` 
             });
             logCallback(`⚠️ Korrektur ${session.correctionAttempts}/2`);
+            // KEIN chatCallback hier! Sonst wird Korrektur-Nachricht angezeigt
             setTimeout(() => agentLoop(sessionId), 1000);
             return;
         }
@@ -261,7 +273,10 @@ async function agentLoop(sessionId) {
             if (session.emptyResponseCount >= 3) {
                 session.isPaused = true;
                 logCallback(`⏸ Pausiert`);
-                chatCallback('ai', '⏸ Klarere Anweisung nötig');
+                if (session.lastChatMessage !== '⏸ Klarere Anweisung nötig') {
+                    chatCallback('ai', '⏸ Klarere Anweisung nötig');
+                    session.lastChatMessage = '⏸ Klarere Anweisung nötig';
+                }
                 return;
             }
         } else {
@@ -311,6 +326,7 @@ function sendChatMessage(sessionId, userMessage, contextData) {
     session.emptyResponseCount = 0;
     session.stepCount = 0;
     session.correctionAttempts = 0;
+    session.lastChatMessage = null; // Reset bei neuer User-Nachricht
     
     agentLoop(sessionId);
     return true;
