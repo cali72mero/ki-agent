@@ -1,4 +1,4 @@
-// Update: API-Endpoint für Modell-Abruf hinzugefügt
+// Fix: Besseres Error-Handling für /api/user/settings
 const express    = require('express');
 const bodyParser = require('body-parser');
 const http       = require('http');
@@ -218,7 +218,6 @@ function createServer() {
         res.json({ success: true });
     });
 
-    // NEUER ENDPOINT: Verfügbare Modelle abrufen
     app.post('/api/models', checkSession, async (req, res) => {
         try {
             const { provider, apiKey } = req.body;
@@ -234,16 +233,29 @@ function createServer() {
     });
 
     app.post('/api/user/settings', checkSession, (req, res) => {
-        const { apiKey, provider, model } = req.body;
-        const username = req.user.username;
-        
-        if (!userSettings[username]) userSettings[username] = {};
-        if (apiKey) userSettings[username].apiKey = encrypt(apiKey);
-        if (provider) userSettings[username].provider = provider;
-        if (model !== undefined) userSettings[username].model = model;
-        
-        saveUserSettings();
-        res.json({ success: true });
+        try {
+            const { apiKey, provider, model } = req.body;
+            const username = req.user.username;
+            
+            if (!userSettings[username]) userSettings[username] = {};
+            
+            // Nur speichern wenn Werte vorhanden sind
+            if (apiKey !== undefined && apiKey !== '') {
+                userSettings[username].apiKey = encrypt(apiKey);
+            }
+            if (provider !== undefined && provider !== '') {
+                userSettings[username].provider = provider;
+            }
+            if (model !== undefined) {
+                userSettings[username].model = model;
+            }
+            
+            saveUserSettings();
+            res.json({ success: true });
+        } catch(e) {
+            console.error('Fehler beim Speichern der User-Settings:', e.message);
+            res.status(500).json({ error: e.message });
+        }
     });
 
     app.get('/api/user/settings', checkSession, (req, res) => {

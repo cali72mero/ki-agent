@@ -23,7 +23,7 @@
     .root-warning strong { display: block; margin-bottom: 4px; }
 
     .chat-history { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
-    .msg { max-width: 80%; padding: 12px 16px; border-radius: 12px; font-size: 0.95rem; line-height: 1.5; }
+    .msg { max-width: 80%; padding: 12px 16px; border-radius: 12px; font-size: 0.95rem; line-height: 1.5; white-space: pre-wrap; }
     .msg.user { background: var(--accent); color: #000; align-self: flex-end; border-bottom-right-radius: 2px; }
     .msg.ai { background: var(--surface); border: 1px solid var(--border); color: var(--text); align-self: flex-start; border-bottom-left-radius: 2px; }
     
@@ -230,12 +230,22 @@
     const apiKey = document.getElementById('apiKey').value.trim();
     const model = document.getElementById('modelSelect').value;
     
-    await fetch('/api/user/settings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ provider, apiKey, model })
-    });
-    alert('✔️ Einstellungen gespeichert!');
+    try {
+      const res = await fetch('/api/user/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider, apiKey, model })
+      });
+      
+      if (res.ok) {
+        alert('✔️ Einstellungen gespeichert!');
+      } else {
+        const err = await res.json();
+        alert('❌ Fehler: ' + (err.error || 'Unbekannter Fehler'));
+      }
+    } catch(e) {
+      alert('❌ Verbindungsfehler: ' + e.message);
+    }
   }
 
   async function sendPrompt() {
