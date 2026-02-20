@@ -1,4 +1,4 @@
-// Fix: JSON-Fehler + Error-Handling verbessert
+// Fix: 400 Bad Request beim Speichern beheben
 const express    = require('express');
 const bodyParser = require('body-parser');
 const http       = require('http');
@@ -21,8 +21,9 @@ function createServer() {
     const server = http.createServer(app);
     const wss    = new WebSocket.Server({ server });
 
-    app.use(bodyParser.json());
-    app.use(bodyParser.urlencoded({ extended: true }));
+    // Erhöhe Body-Limit für große Requests
+    app.use(bodyParser.json({ limit: '10mb' }));
+    app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
     const dataDir = path.join(__dirname, '..', 'data');
     if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
@@ -34,7 +35,7 @@ function createServer() {
                 const data = JSON.parse(fs.readFileSync(SESSIONS_FILE, 'utf8'));
                 activeSessions = new Map(Object.entries(data));
             } catch(e) { 
-                console.error('Fehler beim Laden von Sessions:', e.message);
+                console.error('Session-Load-Error:', e.message);
                 activeSessions = new Map();
             }
         }
@@ -44,7 +45,7 @@ function createServer() {
             const obj = Object.fromEntries(activeSessions);
             fs.writeFileSync(SESSIONS_FILE, JSON.stringify(obj, null, 2), 'utf8');
         } catch(e) { 
-            console.error('Fehler beim Speichern von Sessions:', e.message);
+            console.error('Session-Save-Error:', e.message);
         }
     }
     loadSessions();
@@ -58,7 +59,7 @@ function createServer() {
                     userSettings = JSON.parse(content);
                 }
             } catch(e) { 
-                console.error('Fehler beim Laden von User-Settings:', e.message);
+                console.error('Settings-Load-Error:', e.message);
                 userSettings = {};
             }
         }
@@ -66,8 +67,9 @@ function createServer() {
     function saveUserSettings() {
         try {
             fs.writeFileSync(USER_SETTINGS_FILE, JSON.stringify(userSettings, null, 2), 'utf8');
+            return true;
         } catch(e) { 
-            console.error('Fehler beim Speichern von User-Settings:', e.message);
+            console.error('Settings-Save-Error:', e.message);
             throw e;
         }
     }
@@ -82,7 +84,7 @@ function createServer() {
                     chatHistory = JSON.parse(content);
                 }
             } catch(e) { 
-                console.error('Fehler beim Laden von Chat-History:', e.message);
+                console.error('History-Load-Error:', e.message);
                 chatHistory = {};
             }
         }
@@ -91,7 +93,7 @@ function createServer() {
         try {
             fs.writeFileSync(CHAT_HISTORY_FILE, JSON.stringify(chatHistory, null, 2), 'utf8');
         } catch(e) { 
-            console.error('Fehler beim Speichern von Chat-History:', e.message);
+            console.error('History-Save-Error:', e.message);
         }
     }
     loadChatHistory();
@@ -106,7 +108,7 @@ function createServer() {
     
     function encrypt(text) {
         try {
-            if (!text) return '';
+            if (!text || text === '') return '';
             const ENCRYPTION_KEY = getEncryptionKey();
             const iv = crypto.randomBytes(16);
             const cipher = crypto.createCipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
@@ -114,14 +116,14 @@ function createServer() {
             encrypted += cipher.final('hex');
             return iv.toString('hex') + ':' + encrypted;
         } catch(e) {
-            console.error('Verschlüsselungsfehler:', e.message);
+            console.error('Encrypt-Error:', e.message);
             return text;
         }
     }
     
     function decrypt(text) {
         try {
-            if (!text) return '';
+            if (!text || text === '') return '';
             const ENCRYPTION_KEY = getEncryptionKey();
             const parts = text.split(':');
             if (parts.length !== 2) return text;
@@ -132,7 +134,7 @@ function createServer() {
             decrypted += decipher.final('utf8');
             return decrypted;
         } catch(e) {
-            console.error('Entschlüsselungsfehler:', e.message);
+            console.error('Decrypt-Error:', e.message);
             return text;
         }
     }
@@ -149,9 +151,7 @@ function createServer() {
             if (ws.readyState === WebSocket.OPEN) {
                 try {
                     ws.send(JSON.stringify({ type: 'log', sessionId, message }));
-                } catch(e) {
-                    console.error('WebSocket send error:', e.message);
-                }
+                } catch(e) {}
             }
         });
     }
@@ -161,9 +161,7 @@ function createServer() {
             if (ws.readyState === WebSocket.OPEN) {
                 try {
                     ws.send(JSON.stringify({ type: 'chat', sessionId, sender, message }));
-                } catch(e) {
-                    console.error('WebSocket send error:', e.message);
-                }
+                } catch(e) {}
             }
         });
         if (!chatHistory[sessionId]) chatHistory[sessionId] = [];
@@ -203,7 +201,6 @@ function createServer() {
                 return res;
             }
         } catch(e) { 
-            console.error('Context read error:', e.message);
             return `Fehler: ${e.message}`; 
         }
         return '';
@@ -226,7 +223,7 @@ function createServer() {
             const { username, password } = req.body;
             
             if (!username || !password) {
-                return res.status(400).json({ error: 'Benutzername und Passwort erforderlich' });
+                return res.status(400).json({ error: 'Username/Password fehlt' });
             }
             
             const cfg = getConfig();
@@ -238,10 +235,10 @@ function createServer() {
                 res.setHeader('Set-Cookie', `session=${sessionToken}; HttpOnly; Path=/; Max-Age=2592000`);
                 return res.json({ success: true });
             } else {
-                return res.status(401).json({ error: 'Falscher Benutzername oder Passwort' });
+                return res.status(401).json({ error: 'Falsche Zugangsdaten' });
             }
         } catch(e) {
-            console.error('Login-Fehler:', e.message);
+            console.error('Login-Error:', e.message);
             return res.status(500).json({ error: 'Server-Fehler' });
         }
     });
@@ -257,8 +254,7 @@ function createServer() {
             res.setHeader('Set-Cookie', 'session=; HttpOnly; Path=/; Max-Age=0');
             return res.json({ success: true });
         } catch(e) {
-            console.error('Logout-Fehler:', e.message);
-            return res.status(500).json({ error: 'Server-Fehler' });
+            return res.status(500).json({ error: 'Fehler' });
         }
     });
 
@@ -266,43 +262,56 @@ function createServer() {
         try {
             const { provider, apiKey } = req.body;
             if (!provider || !apiKey) {
-                return res.status(400).json({ error: 'Provider und API Key erforderlich' });
+                return res.status(400).json({ error: 'Provider/API-Key fehlt' });
             }
             const models = await getAvailableModels(provider, apiKey);
             return res.json({ models });
         } catch(e) {
-            console.error('Modelle-Fehler:', e.message);
+            console.error('Models-Error:', e.message);
             return res.status(500).json({ error: e.message });
         }
     });
 
     app.post('/api/user/settings', checkSession, (req, res) => {
         try {
+            console.log('POST /api/user/settings - Body:', JSON.stringify(req.body));
+            
             const { apiKey, provider, model } = req.body;
             const username = req.user.username;
             
-            console.log('Speichere Settings für:', username);
+            // Validierung - erlaubt auch leere Strings
+            if (apiKey === undefined && provider === undefined && model === undefined) {
+                console.log('400: Keine Daten im Request');
+                return res.status(400).json({ error: 'Keine Daten gesendet' });
+            }
             
             if (!userSettings[username]) {
                 userSettings[username] = {};
             }
             
-            if (apiKey !== undefined && apiKey !== '') {
-                userSettings[username].apiKey = encrypt(apiKey);
+            // Speichere Werte (auch leere Strings erlaubt)
+            if (apiKey !== undefined) {
+                if (apiKey === '') {
+                    userSettings[username].apiKey = '';
+                } else {
+                    userSettings[username].apiKey = encrypt(apiKey);
+                }
             }
-            if (provider !== undefined && provider !== '') {
-                userSettings[username].provider = provider;
+            
+            if (provider !== undefined) {
+                userSettings[username].provider = provider || 'groq';
             }
+            
             if (model !== undefined) {
-                userSettings[username].model = model;
+                userSettings[username].model = model || '';
             }
             
             saveUserSettings();
-            console.log('Settings gespeichert');
+            console.log('Settings gespeichert für:', username);
             
             return res.json({ success: true });
         } catch(e) {
-            console.error('Settings-Fehler:', e.message, e.stack);
+            console.error('Settings-Save-Error:', e.message, e.stack);
             return res.status(500).json({ error: e.message || 'Unbekannter Fehler' });
         }
     });
@@ -318,7 +327,7 @@ function createServer() {
                 model: settings.model || ''
             });
         } catch(e) {
-            console.error('Settings-Laden-Fehler:', e.message);
+            console.error('Settings-Load-Error:', e.message);
             return res.status(500).json({ error: e.message });
         }
     });
@@ -328,7 +337,6 @@ function createServer() {
             const { sessionId } = req.params;
             return res.json({ history: chatHistory[sessionId] || [] });
         } catch(e) {
-            console.error('Chat-History-Fehler:', e.message);
             return res.status(500).json({ error: e.message });
         }
     });
@@ -341,7 +349,6 @@ function createServer() {
             saveConfig(cfg);
             return res.json({ success: true });
         } catch(e) {
-            console.error('Domain-Fehler:', e.message);
             return res.status(500).json({ error: e.message });
         }
     });
@@ -351,7 +358,6 @@ function createServer() {
             const cfg = getConfig();
             return res.json({ domain: cfg.domain || '' });
         } catch(e) {
-            console.error('Domain-Laden-Fehler:', e.message);
             return res.status(500).json({ error: e.message });
         }
     });
@@ -372,7 +378,7 @@ function createServer() {
 
             return res.json({ success: true, sessionId });
         } catch(e) {
-            console.error('Start-Fehler:', e.message);
+            console.error('Start-Error:', e.message);
             return res.status(500).json({ error: e.message });
         }
     });
@@ -384,7 +390,6 @@ function createServer() {
             const ok = sendChatMessage(sessionId, prompt, ctxData);
             return res.json({ success: ok });
         } catch(e) {
-            console.error('Chat-Fehler:', e.message);
             return res.status(500).json({ error: e.message });
         }
     });
