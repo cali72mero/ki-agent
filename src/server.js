@@ -1,4 +1,4 @@
-// Fix: 400 Bad Request beim Speichern beheben
+// Feature: Chat-Verwaltung mit SQLite
 const express    = require('express');
 const bodyParser = require('body-parser');
 const http       = require('http');
@@ -11,17 +11,16 @@ const { v4: uuidv4 } = require('uuid');
 const { getConfig, saveConfig }  = require('./config');
 const { runAgent, sendChatMessage, stopAgent } = require('./agent-loop');
 const { getAvailableModels } = require('./api-providers');
+const chatManager = require('./chat-manager');
 
 const SESSIONS_FILE = path.join(__dirname, '..', 'data', 'sessions.json');
 const USER_SETTINGS_FILE = path.join(__dirname, '..', 'data', 'user-settings.json');
-const CHAT_HISTORY_FILE = path.join(__dirname, '..', 'data', 'chat-history.json');
 
 function createServer() {
     const app    = express();
     const server = http.createServer(app);
     const wss    = new WebSocket.Server({ server });
 
-    // Erhöhe Body-Limit für große Requests
     app.use(bodyParser.json({ limit: '10mb' }));
     app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -74,29 +73,6 @@ function createServer() {
         }
     }
     loadUserSettings();
-
-    let chatHistory = {};
-    function loadChatHistory() {
-        if (fs.existsSync(CHAT_HISTORY_FILE)) {
-            try {
-                const content = fs.readFileSync(CHAT_HISTORY_FILE, 'utf8');
-                if (content.trim()) {
-                    chatHistory = JSON.parse(content);
-                }
-            } catch(e) { 
-                console.error('History-Load-Error:', e.message);
-                chatHistory = {};
-            }
-        }
-    }
-    function saveChatHistory() {
-        try {
-            fs.writeFileSync(CHAT_HISTORY_FILE, JSON.stringify(chatHistory, null, 2), 'utf8');
-        } catch(e) { 
-            console.error('History-Save-Error:', e.message);
-        }
-    }
-    loadChatHistory();
 
     function getEncryptionKey() {
         try {
@@ -164,9 +140,6 @@ function createServer() {
                 } catch(e) {}
             }
         });
-        if (!chatHistory[sessionId]) chatHistory[sessionId] = [];
-        chatHistory[sessionId].push({ sender, message, timestamp: Date.now() });
-        saveChatHistory();
     }
 
     function checkSession(req, res, next) {
@@ -279,7 +252,6 @@ function createServer() {
             const { apiKey, provider, model } = req.body;
             const username = req.user.username;
             
-            // Validierung - erlaubt auch leere Strings
             if (apiKey === undefined && provider === undefined && model === undefined) {
                 console.log('400: Keine Daten im Request');
                 return res.status(400).json({ error: 'Keine Daten gesendet' });
@@ -289,7 +261,6 @@ function createServer() {
                 userSettings[username] = {};
             }
             
-            // Speichere Werte (auch leere Strings erlaubt)
             if (apiKey !== undefined) {
                 if (apiKey === '') {
                     userSettings[username].apiKey = '';
@@ -332,11 +303,122 @@ function createServer() {
         }
     });
 
-    app.get('/api/chat/history/:sessionId', checkSession, (req, res) => {
+    // === CHAT MANAGEMENT ENDPOINTS ===
+    
+    // Chat-Liste laden
+    app.get('/api/chats', checkSession, async (req, res) => {
         try {
-            const { sessionId } = req.params;
-            return res.json({ history: chatHistory[sessionId] || [] });
+            const username = req.user.username;
+            const chats = await chatManager.getChatList(username);
+            return res.json({ chats });
         } catch(e) {
+            console.error('Chat-List-Error:', e.message);
+            return res.status(500).json({ error: e.message });
+        }
+    });
+    
+    // Einzelnen Chat laden
+    app.get('/api/chats/:id', checkSession, async (req, res) => {
+        try {
+            const username = req.user.username;
+            const chatId = parseInt(req.params.id);
+            const chat = await chatManager.getChat(chatId, username);
+            
+            if (!chat) {
+                return res.status(404).json({ error: 'Chat nicht gefunden' });
+            }
+            
+            return res.json({ chat });
+        } catch(e) {
+            console.error('Chat-Load-Error:', e.message);
+            return res.status(500).json({ error: e.message });
+        }
+    });
+    
+    // Neuen Chat erstellen
+    app.post('/api/chats/new', checkSession, async (req, res) => {
+        try {
+            const username = req.user.username;
+            const { title, message, config } = req.body;
+            
+            if (!message) {
+                return res.status(400).json({ error: 'Nachricht fehlt' });
+            }
+            
+            const chatTitle = title || 'Neuer Chat';
+            const result = await chatManager.createChat(username, chatTitle, message, config);
+            
+            return res.json({ success: true, chatId: result.chatId });
+        } catch(e) {
+            console.error('Chat-Create-Error:', e.message);
+            return res.status(500).json({ error: e.message });
+        }
+    });
+    
+    // Nachricht zu Chat hinzufügen
+    app.post('/api/chats/:id/message', checkSession, async (req, res) => {
+        try {
+            const username = req.user.username;
+            const chatId = parseInt(req.params.id);
+            const { message } = req.body;
+            
+            if (!message) {
+                return res.status(400).json({ error: 'Nachricht fehlt' });
+            }
+            
+            await chatManager.updateChat(chatId, username, message);
+            
+            return res.json({ success: true });
+        } catch(e) {
+            console.error('Chat-Update-Error:', e.message);
+            return res.status(500).json({ error: e.message });
+        }
+    });
+    
+    // Chat-Titel ändern
+    app.put('/api/chats/:id/title', checkSession, async (req, res) => {
+        try {
+            const username = req.user.username;
+            const chatId = parseInt(req.params.id);
+            const { title } = req.body;
+            
+            if (!title) {
+                return res.status(400).json({ error: 'Titel fehlt' });
+            }
+            
+            await chatManager.updateChatTitle(chatId, username, title);
+            
+            return res.json({ success: true });
+        } catch(e) {
+            console.error('Chat-Title-Error:', e.message);
+            return res.status(500).json({ error: e.message });
+        }
+    });
+    
+    // Einzelnen Chat löschen
+    app.delete('/api/chats/:id', checkSession, async (req, res) => {
+        try {
+            const username = req.user.username;
+            const chatId = parseInt(req.params.id);
+            
+            await chatManager.deleteChat(chatId, username);
+            
+            return res.json({ success: true });
+        } catch(e) {
+            console.error('Chat-Delete-Error:', e.message);
+            return res.status(500).json({ error: e.message });
+        }
+    });
+    
+    // Alle Chats löschen
+    app.delete('/api/chats', checkSession, async (req, res) => {
+        try {
+            const username = req.user.username;
+            const result = await chatManager.deleteAllChats(username);
+            
+            return res.json({ success: true, deleted: result.deleted });
+        } catch(e) {
+            console.error('Chats-Delete-All-Error:', e.message);
             return res.status(500).json({ error: e.message });
         }
     });
@@ -364,14 +446,14 @@ function createServer() {
 
     app.post('/api/start', checkSession, (req, res) => {
         try {
-            const { provider, apiKey, directory, prompt, contextPath, model } = req.body;
+            const { provider, apiKey, directory, prompt, contextPath, model, allowRoot } = req.body;
 
             const initialContextData = readContextData(contextPath);
             const sessionId = uuidv4().substring(0, 8).toUpperCase();
 
             runAgent(
                 sessionId,
-                { provider, apiKey, model, directory, initialPrompt: prompt, initialContextData },
+                { provider, apiKey, model, directory, initialPrompt: prompt, initialContextData, allowRoot },
                 (msg) => broadcastLog(sessionId, msg),
                 (sender, msg) => broadcastChat(sessionId, sender, msg)
             );
