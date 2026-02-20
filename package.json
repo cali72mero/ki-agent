@@ -1,6 +1,6 @@
 {
   "name": "ki-agent",
-  "version": "0.0.1-beta",
+  "version": "0.1.0-beta",
   "description": "Persönlicher KI-Agent mit echtem Chat-Interface, autonomen Bash-Kommandos und intelligentem Standby zum API-Kosten sparen.",
   "main": "agent.js",
   "scripts": {
@@ -12,6 +12,7 @@
     "express": "^4.18.2",
     "node-fetch": "^2.7.0",
     "uuid": "^9.0.0",
-    "ws": "^8.16.0"
+    "ws": "^8.16.0",
+    "sqlite3": "^5.1.7"
   }
 }
