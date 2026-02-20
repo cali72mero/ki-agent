@@ -1,4 +1,4 @@
-// MEGA-FIX: Wie OpenClaw - Bash statt XML-Tags!
+// Feature: Root-Modus + Sicherheits-Check
 const { callLLM } = require('./api-providers');
 const { exec } = require('child_process');
 const fs = require('fs');
@@ -7,12 +7,35 @@ const path = require('path');
 const activeSessions = new Map();
 
 function runAgent(sessionId, config, logCallback, chatCallback) {
-    const { provider, apiKey, model, directory, initialPrompt, initialContextData } = config;
+    const { provider, apiKey, model, directory, initialPrompt, initialContextData, allowRoot } = config;
     
     let webDirectory = directory;
     if (directory === '/') {
         webDirectory = '/var/www/html';
     }
+    
+    // Root-Modus Warnung
+    const rootModeInfo = allowRoot ? `
+🔴 ROOT-MODUS AKTIV 🔴
+Du hast volle System-Kontrolle:
+- apt install/update/upgrade
+- systemctl restart/stop/start
+- rm -rf (Dateien löschen)
+- reboot (System neustarten)
+- Alle sudo-Befehle
+
+Nutze diese Rechte verantwortungsvoll!` : `
+🟢 NORMAL-MODUS
+Du kannst:
+- Dateien erstellen/lesen/schreiben
+- Programme im User-Verzeichnis ausführen
+
+Du kannst NICHT:
+- System-Updates (apt update/upgrade)
+- Programme installieren (apt install)
+- System neustarten (reboot)
+- Systemdateien löschen
+- systemctl Befehle`;
     
     const conversationHistory = [
         {
@@ -21,11 +44,14 @@ function runAgent(sessionId, config, logCallback, chatCallback) {
 
 ARBEITSVERZEICHNIS: ${directory}
 WEBSEITEN-ORDNER: ${webDirectory}
+${rootModeInfo}
 
-WIE DU DATEIEN ERSTELLST:
-Nutze BASH-BEFEHLE um Dateien zu erstellen (NICHT komplizierte Tags!):
+WIE DU ARBEITEST:
+Nutze <bash> Tags für alle Befehle.
 
-BEISPIEL - Python Flask App erstellen:
+BEISPIELE:
+
+1. DATEIEN ERSTELLEN:
 <bash>cat > /root/app.py << 'EOF'
 from flask import Flask
 app = Flask(__name__)
@@ -39,66 +65,37 @@ if __name__ == '__main__':
 EOF
 </bash>
 
-BEISPIEL - HTML Webseite erstellen:
-<bash>cat > ${webDirectory}/index.html << 'EOF'
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Webseite</title>
-    <style>
-        body { 
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            font-family: Arial;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-        }
-    </style>
-</head>
-<body>
-    <h1>Willkommen!</h1>
-</body>
-</html>
-EOF
-</bash>
+2. DATEIEN LESEN:
+<bash>cat /root/app.py</bash>
 
-BEISPIEL - Mehrere Dateien:
-<bash>cat > ${webDirectory}/index.html << 'EOF'
-<!DOCTYPE html>
-<html>
-<head>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-    <h1>Hallo</h1>
-</body>
-</html>
-EOF
-</bash>
-<bash>cat > ${webDirectory}/style.css << 'EOF'
-body {
-    background: #1a1a1a;
-    color: white;
-    font-family: Arial;
-}
-EOF
-</bash>
+3. DATEIEN LÖSCHEN:
+<bash>rm /root/app.py</bash>
+
+4. VERZEICHNISSE ERSTELLEN:
+<bash>mkdir -p /root/mein_projekt</bash>
+
+5. PROGRAMME AUSFÜHREN:
+<bash>python3 /root/app.py &</bash>
+
+${allowRoot ? `6. PROGRAMME INSTALLIEREN (nur Root-Modus):
+<bash>apt update && apt install -y python3-flask</bash>
+
+7. SERVICES NEUSTARTEN (nur Root-Modus):
+<bash>systemctl restart nginx</bash>
+
+8. SYSTEM UPDATEN (nur Root-Modus):
+<bash>apt update && apt upgrade -y</bash>
+
+9. SYSTEM NEUSTARTEN (nur Root-Modus):
+<bash>reboot</bash>` : ''}
 
 REGELN:
-1. Nutze <bash>cat > /pfad << 'EOF' ... EOF</bash> für Dateien
+1. Nutze <bash> für ALLE Befehle
 2. Python-Dateien: /root/datei.py
 3. HTML/CSS/JS: ${webDirectory}/datei.html
-4. Im Chat KEINE Code-Blöcke zeigen (nur "Dateien erstellt")
-5. Schreibe vollständigen, funktionierenden Code
-6. Nach Dateien erstellen: "✅ Fertig! Dateien: datei1.py, datei2.html"
-
-WICHTIG:
-- IMMER <bash> Tags nutzen
-- Kompletten Code schreiben (nicht "...")
-- Moderne Designs mit CSS`
+4. Im Chat KEINE Code-Blöcke (nur "Fertig")
+5. Schreibe vollständigen Code
+6. Bei Fehlern: Korrigiere automatisch`
         },
         { role: 'user', content: initialContextData + '\n\n' + initialPrompt }
     ];
@@ -113,11 +110,17 @@ WICHTIG:
         maxSteps: 30,
         webDirectory,
         emptyResponseCount: 0,
-        filesCreatedThisRound: 0
+        filesCreatedThisRound: 0,
+        allowRoot: allowRoot || false
     };
 
     activeSessions.set(sessionId, session);
     logCallback(`🚀 Start: ${directory}`);
+    if (allowRoot) {
+        logCallback(`🔴 ROOT-MODUS AKTIV`);
+    } else {
+        logCallback(`🟢 NORMAL-MODUS`);
+    }
     
     agentLoop(sessionId);
 }
@@ -149,7 +152,6 @@ async function agentLoop(sessionId) {
 
         conversationHistory.push({ role: 'assistant', content: response });
         
-        // Entferne <bash> Tags aus Chat-Anzeige
         let chatMessage = response;
         chatMessage = chatMessage.replace(/<bash>[\s\S]*?<\/bash>/g, '');
         chatMessage = chatMessage.replace(/```[\s\S]*?```/g, '');
@@ -165,23 +167,33 @@ async function agentLoop(sessionId) {
 
         let hasActions = false;
 
-        // Führe ALLE Bash-Befehle aus
         const bashMatches = [...response.matchAll(/<bash>([\s\S]*?)<\/bash>/g)];
         for (const match of bashMatches) {
             hasActions = true;
             const command = match[1].trim();
             
-            // Prüfe ob es ein cat > Befehl ist (Datei wird erstellt)
+            // SICHERHEITS-CHECK
+            const isDangerous = checkDangerousCommand(command);
+            
+            if (isDangerous && !session.allowRoot) {
+                logCallback(`❌ BLOCKIERT: ${command.substring(0, 50)}`);
+                conversationHistory.push({ 
+                    role: 'user', 
+                    content: `❌ FEHLER: Befehl blockiert (benötigt Root-Rechte):\n${command}\n\nDieser Befehl ist gefährlich und benötigt Root-Modus. Im Normal-Modus kannst du nur Dateien erstellen/lesen/schreiben.` 
+                });
+                chatCallback('ai', '❌ Befehl blockiert - benötigt Root-Rechte');
+                continue;
+            }
+            
             const isFileCreation = command.includes('cat >') || command.includes('cat>');
             
             if (isFileCreation) {
-                // Extrahiere Dateiname aus "cat > /pfad/datei.py"
                 const fileMatch = command.match(/cat\s*>\s*([^\s<]+)/);
                 if (fileMatch) {
                     logCallback(`💾 ${fileMatch[1]}`);
                 }
             } else {
-                logCallback(`💻 ${command.substring(0, 50)}...`);
+                logCallback(`💻 ${command.substring(0, 60)}`);
             }
             
             try {
@@ -195,7 +207,12 @@ async function agentLoop(sessionId) {
                         logCallback(`✅ ${fileName}`);
                     }
                 } else {
-                    logCallback(`✅ ${output.substring(0, 150)}`);
+                    const shortOutput = output.substring(0, 150);
+                    if (shortOutput.trim()) {
+                        logCallback(`✅ ${shortOutput}`);
+                    } else {
+                        logCallback(`✅ OK`);
+                    }
                 }
                 
                 conversationHistory.push({ role: 'user', content: `Befehl ausgeführt. Output: ${output.substring(0, 500)}` });
@@ -205,45 +222,32 @@ async function agentLoop(sessionId) {
             }
         }
 
-        // AUTO-KORREKTUR: Wenn "Fertig" aber keine Befehle/Dateien
+        // AUTO-KORREKTUR
         if (isDone && !hasActions) {
-            
-            // Verhindere Endlosschleife - max 2 Korrekturversuche
             if (!session.correctionAttempts) session.correctionAttempts = 0;
             session.correctionAttempts++;
             
             if (session.correctionAttempts > 2) {
                 session.isPaused = true;
-                logCallback(`❌ Abgebrochen - Agent versteht Aufgabe nicht`);
-                chatCallback('ai', '❌ Fehler: Kann keine Dateien erstellen. Bitte anderes Model nutzen (z.B. llama-3.3-70b-versatile bei Groq).');
+                logCallback(`❌ Abgebrochen`);
+                chatCallback('ai', '❌ Model versteht Aufgabe nicht. Nutze stärkeres Model (z.B. llama-3.3-70b-versatile).');
                 return;
             }
             
             session.isPaused = false;
             conversationHistory.push({ 
                 role: 'user', 
-                content: `❌ DU HAST KEINE DATEIEN ERSTELLT!
-
-Nutze Bash-Befehle:
-<bash>cat > /root/datei.py << 'EOF'
-CODE HIER
-EOF
-</bash>
-
-Versuche es JETZT NOCHMAL mit <bash> Tags!` 
+                content: `❌ DU HAST KEINE BEFEHLE AUSGEFÜHRT!\n\nNutze <bash> Tags:\n<bash>cat > /root/datei.py << 'EOF'\nCODE\nEOF\n</bash>\n\nVersuche es NOCHMAL!` 
             });
             logCallback(`⚠️ Korrektur ${session.correctionAttempts}/2`);
-            chatCallback('ai', '⚠️ Korrigiere...');
             setTimeout(() => agentLoop(sessionId), 1000);
             return;
         }
         
-        // Reset correction counter bei Erfolg
         if (hasActions) {
             session.correctionAttempts = 0;
         }
         
-        // Normale Fertigstellung
         if (isDone) {
             session.isPaused = true;
             logCallback(`✅ Fertig`);
@@ -271,6 +275,27 @@ Versuche es JETZT NOCHMAL mit <bash> Tags!`
         session.isPaused = true;
         chatCallback('ai', `❌ ${err.message}`);
     }
+}
+
+function checkDangerousCommand(cmd) {
+    const dangerous = [
+        'apt install', 'apt-get install',
+        'apt update', 'apt-get update',
+        'apt upgrade', 'apt-get upgrade',
+        'apt remove', 'apt-get remove',
+        'systemctl', 'service ',
+        'reboot', 'shutdown',
+        'rm -rf /', 'rm -rf /etc', 'rm -rf /var', 'rm -rf /usr', 'rm -rf /boot',
+        'dd if=', 
+        'mkfs.', 'fdisk', 'parted',
+        'iptables', 'ufw ',
+        'passwd', 'useradd', 'userdel',
+        'chmod 777 /',
+        'chown root:root /'
+    ];
+    
+    const cmdLower = cmd.toLowerCase();
+    return dangerous.some(d => cmdLower.includes(d));
 }
 
 function sendChatMessage(sessionId, userMessage, contextData) {
