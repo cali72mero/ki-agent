@@ -19,8 +19,11 @@
     label { display: block; font-size: 0.8rem; color: var(--muted); margin: 12px 0 4px; }
     input, select { width: 100%; background: #111; border: 1px solid var(--border); border-radius: 6px; color: #fff; padding: 8px 10px; font-size: 0.9rem; }
     
-    .root-warning { display: none; background: #ff45451a; border: 1px solid var(--red); color: var(--red); padding: 10px; border-radius: 6px; font-size: 0.8rem; margin-top: 8px; line-height: 1.4; }
-    .root-warning strong { display: block; margin-bottom: 4px; }
+    .root-mode-box { background: #ff45451a; border: 1px solid var(--red); padding: 12px; border-radius: 8px; margin-top: 12px; }
+    .root-mode-box label { margin: 0; display: flex; align-items: center; gap: 8px; cursor: pointer; }
+    .root-mode-box input[type="checkbox"] { width: auto; margin: 0; cursor: pointer; }
+    .root-mode-box small { display: block; color: var(--red); font-size: 0.75rem; margin-top: 6px; line-height: 1.4; }
+    .root-mode-box strong { color: var(--red); }
 
     .chat-history { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
     .msg { max-width: 80%; padding: 12px 16px; border-radius: 12px; font-size: 0.95rem; line-height: 1.5; white-space: pre-wrap; }
@@ -46,7 +49,7 @@
 <body>
 
 <header>
-  <h1>&#129302; KI-Agent v0.0.1 Beta</h1>
+  <h1>&#129302; KI-Agent v0.1 Beta</h1>
   <button onclick="toggleConsole()" style="margin-left:auto; background:#222; color:#fff; border:1px solid #444; border-radius:4px; padding:4px 10px; cursor:pointer; font-size:0.8rem; margin-right:10px;">Terminal</button>
   <button class="logout-btn" onclick="logout()">Abmelden</button>
 </header>
@@ -79,15 +82,27 @@
     <button class="save-btn" onclick="saveSettings()">Einstellungen speichern</button>
 
     <label style="margin-top:20px;">Arbeitsverzeichnis</label>
-    <select id="dirPreset" onchange="checkRootWarning()">
+    <select id="dirPreset" onchange="updateDirectory()">
       <option value="/var/www/html">Webserver (/var/www/html)</option>
       <option value="/home">Home-Ordner (/home)</option>
-      <option value="/">⚠️ Root-Zugriff (/)</option>
+      <option value="/root">Root-Ordner (/root)</option>
+      <option value="/">System-Root (/)</option>
     </select>
     <input type="text" id="directory" value="/var/www/html" style="margin-top:6px;">
     
-    <div id="rootWarning" class="root-warning">
-      <strong>ACHTUNG!</strong> Voller Root-Zugriff!
+    <div class="root-mode-box">
+      <label>
+        <input type="checkbox" id="allowRoot" onchange="rootModeChanged()">
+        <strong>🔴 Root-Modus aktivieren</strong>
+      </label>
+      <small>
+        <strong>ACHTUNG!</strong> Ermöglicht:<br>
+        • apt install/update/upgrade<br>
+        • systemctl restart/stop<br>
+        • Dateien löschen (rm -rf)<br>
+        • System neustarten (reboot)<br>
+        Ohne Root-Modus: Nur Dateien erstellen/lesen.
+      </small>
     </div>
 
     <hr style="border:0; border-top:1px solid var(--border); margin: 20px 0 10px 0;">
@@ -120,10 +135,16 @@
   let sessionId = null;
   let ws;
 
-  function checkRootWarning() {
+  function updateDirectory() {
     const v = document.getElementById('dirPreset').value;
     document.getElementById('directory').value = v;
-    document.getElementById('rootWarning').style.display = (v === '/') ? 'block' : 'none';
+  }
+
+  function rootModeChanged() {
+    const checked = document.getElementById('allowRoot').checked;
+    if (checked && !confirm("⚠️ WARNUNG!\n\nRoot-Modus gibt dem Agent VOLLE System-Kontrolle!\n\nEr kann:\n- Programme installieren\n- System neustarten\n- Dateien löschen\n- Services steuern\n\nNur aktivieren wenn du dem Agent vertraust!\n\nFortfahren?")) {
+      document.getElementById('allowRoot').checked = false;
+    }
   }
 
   function toggleConsole() {
@@ -195,7 +216,7 @@
     const loading = document.getElementById('modelLoading');
     const select = document.getElementById('modelSelect');
     loading.style.display = 'inline';
-    select.innerHTML = '<option value="">Lädt...</option>';
+    select.innerHTML = '<option value="">Ädt...</option>';
 
     try {
       const res = await fetch('/api/models', {
@@ -253,11 +274,11 @@
     const directory   = document.getElementById('directory').value.trim();
     const prompt      = document.getElementById('promptInput').value.trim();
     const contextPath = document.getElementById('contextPath').value.trim();
+    const allowRoot   = document.getElementById('allowRoot').checked;
 
     if(!prompt) return;
     if(!apiKey && !sessionId) { alert("⚠️ API Key fehlt!"); return; }
 
-    // WICHTIG: Zeige User-Nachricht SOFORT im Chat an
     addMsg('user', prompt);
     
     document.getElementById('promptInput').value = '';
@@ -266,7 +287,7 @@
     if(!sessionId) {
       const res = await fetch('/api/start', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider, apiKey, model, directory, prompt, contextPath })
+        body: JSON.stringify({ provider, apiKey, model, directory, prompt, contextPath, allowRoot })
       });
       if(res.status === 401) { alert("Session abgelaufen!"); window.location.href='/'; return; }
       const data = await res.json();
