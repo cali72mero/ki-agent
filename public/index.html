@@ -3,253 +3,177 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KI-Agent &ndash; Pers\u00f6nlicher AI Agent</title>
+  <title>KI-Agent Interface</title>
   <style>
-    :root {
-      --bg: #0d0d0d;
-      --surface: #1a1a1a;
-      --border: #2d2d2d;
-      --accent: #00d4ff;
-      --green: #00ff88;
-      --red: #ff4545;
-      --yellow: #ffd700;
-      --text: #e0e0e0;
-      --muted: #888;
-    }
+    :root { --bg: #0d0d0d; --surface: #1a1a1a; --border: #2d2d2d; --accent: #00d4ff; --green: #00ff88; --red: #ff4545; --text: #e0e0e0; --muted: #888; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-    header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 32px; display: flex; align-items: center; gap: 12px; }
-    header h1 { font-size: 1.3rem; font-weight: 700; color: var(--accent); }
-    header span { background: #00ff8822; color: var(--green); font-size: 0.7rem; padding: 2px 8px; border-radius: 99px; border: 1px solid var(--green); }
-    .container { max-width: 1100px; margin: 0 auto; padding: 24px 16px; display: grid; grid-template-columns: 380px 1fr; gap: 20px; }
-    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
-    .card h2 { font-size: 0.85rem; text-transform: uppercase; color: var(--muted); letter-spacing: 1px; margin-bottom: 16px; }
-    label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 4px; margin-top: 12px; }
-    label:first-of-type { margin-top: 0; }
-    input, select, textarea {
-      width: 100%; background: #111; border: 1px solid var(--border); border-radius: 8px;
-      color: var(--text); padding: 9px 12px; font-size: 0.9rem; outline: none; font-family: inherit;
-    }
-    input:focus, select:focus, textarea:focus { border-color: var(--accent); }
-    textarea { resize: vertical; min-height: 80px; }
-    .btn { width: 100%; padding: 11px; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; margin-top: 14px; transition: opacity .2s; }
-    .btn:hover { opacity: .85; }
-    .btn-start { background: var(--accent); color: #000; }
-    .btn-stop  { background: var(--red);   color: #fff; }
-    .console {
-      background: #050505; border: 1px solid var(--border); border-radius: 8px;
-      height: 520px; overflow-y: auto; padding: 14px 16px;
-      font-family: 'Cascadia Code', 'Fira Code', 'Courier New', monospace; font-size: 0.82rem;
-      line-height: 1.6; white-space: pre-wrap; word-break: break-all;
-    }
-    .log-info   { color: var(--text); }
-    .log-cmd    { color: var(--accent); }
-    .log-ok     { color: var(--green); }
-    .log-err    { color: var(--red); }
-    .log-warn   { color: var(--yellow); }
-    .log-step   { color: #cc99ff; }
-    .sessions { margin-top: 16px; }
-    .sessions h2 { font-size: 0.85rem; text-transform: uppercase; color: var(--muted); letter-spacing: 1px; margin-bottom: 8px; }
-    .session-badge { display: inline-block; background: #00ff8811; border: 1px solid var(--green); color: var(--green); border-radius: 6px; padding: 3px 10px; font-size: 0.78rem; margin: 3px; }
-    .status-bar { font-size: 0.78rem; color: var(--muted); margin-bottom: 8px; }
-    #wsStatus { color: var(--green); font-weight: 600; }
-    select option { background: #1a1a1a; }
-    @media(max-width:720px){ .container{ grid-template-columns:1fr; } }
+    body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; }
+    header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; }
+    header h1 { font-size: 1.2rem; color: var(--accent); }
+    
+    .layout { display: flex; flex: 1; overflow: hidden; }
+    .sidebar { width: 340px; background: var(--surface); border-right: 1px solid var(--border); padding: 20px; overflow-y: auto; }
+    .main-area { flex: 1; display: flex; flex-direction: column; background: var(--bg); position: relative; }
+    
+    label { display: block; font-size: 0.8rem; color: var(--muted); margin: 12px 0 4px; }
+    input, select { width: 100%; background: #111; border: 1px solid var(--border); border-radius: 6px; color: #fff; padding: 8px 10px; font-size: 0.9rem; }
+    
+    .root-warning { display: none; background: #ff45451a; border: 1px solid var(--red); color: var(--red); padding: 10px; border-radius: 6px; font-size: 0.8rem; margin-top: 8px; line-height: 1.4; }
+    .root-warning strong { display: block; margin-bottom: 4px; }
+
+    /* Chat Area */
+    .chat-history { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+    .msg { max-width: 80%; padding: 12px 16px; border-radius: 12px; font-size: 0.95rem; line-height: 1.5; }
+    .msg.user { background: var(--accent); color: #000; align-self: flex-end; border-bottom-right-radius: 2px; }
+    .msg.ai { background: var(--surface); border: 1px solid var(--border); color: var(--text); align-self: flex-start; border-bottom-left-radius: 2px; }
+    
+    /* Input Area */
+    .chat-input-area { padding: 16px; background: var(--surface); border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
+    .chat-input-row { display: flex; gap: 10px; }
+    .chat-input-row textarea { flex: 1; background: #111; border: 1px solid var(--border); border-radius: 8px; color: #fff; padding: 12px; min-height: 50px; resize: vertical; outline: none; }
+    .btn-send { background: var(--accent); color: #000; border: none; border-radius: 8px; padding: 0 20px; font-weight: bold; cursor: pointer; }
+    
+    /* Context Input */
+    .context-box { display: flex; gap: 8px; align-items: center; }
+    .context-box input { flex: 1; background: #222; border: 1px dashed var(--muted); }
+    .context-help { font-size: 0.7rem; color: var(--muted); }
+
+    /* Console overlay */
+    .console-overlay { position: absolute; top: 0; right: 0; width: 350px; bottom: 0; background: #050505e6; border-left: 1px solid var(--border); padding: 10px; overflow-y: auto; font-family: monospace; font-size: 0.75rem; display: none; }
+    .log-info { color: #aaa; margin-bottom: 4px; }
   </style>
 </head>
 <body>
+
 <header>
-  <div style="font-size:1.5rem">&#129302;</div>
-  <h1>KI-Agent</h1>
-  <span>LIVE</span>
-  <div style="margin-left:auto;font-size:0.8rem;color:var(--muted)" id="wsStatus">Verbinde...</div>
+  <h1>&#129302; KI-Agent</h1>
+  <button onclick="toggleConsole()" style="margin-left:auto; background:#222; color:#fff; border:1px solid #444; border-radius:4px; padding:4px 10px; cursor:pointer; font-size:0.8rem;">Terminal ein/ausblenden</button>
 </header>
 
-<div class="container">
-  <!-- LINKE SPALTE: Einstellungen -->
-  <div>
-    <div class="card">
-      <h2>&#9881; Einstellungen</h2>
+<div class="layout">
+  <!-- EINSTELLUNGEN -->
+  <div class="sidebar">
+    <h3 style="font-size:0.9rem; color:var(--accent); margin-bottom:10px;">1. Konfiguration</h3>
+    
+    <label>Provider & API Key</label>
+    <select id="provider" style="margin-bottom:6px;"><option value="groq">Groq (Sehr schnell)</option><option value="openai">OpenAI (GPT-4o)</option><option value="claude">Claude</option></select>
+    <input type="password" id="apiKey" placeholder="API Key eingeben...">
+    
+    <label>Deadline (Uhrzeit)</label>
+    <input type="time" id="deadline" value="15:00">
 
-      <label>KI-Anbieter</label>
-      <select id="provider">
-        <option value="groq">Groq (Llama 3.3 &ndash; sehr schnell &amp; kostenlos)</option>
-        <option value="openai">OpenAI (GPT-4o)</option>
-        <option value="claude">Claude (Anthropic)</option>
-        <option value="openrouter">OpenRouter (viele Modelle)</option>
-      </select>
-
-      <label>API Key</label>
-      <input type="password" id="apiKey" placeholder="sk-... oder gsk_..." autocomplete="off">
-
-      <label>Modell (optional, Standard wird automatisch gew\u00e4hlt)</label>
-      <input type="text" id="model" placeholder="z.B. llama-3.3-70b-versatile, gpt-4o ...">
-
-      <label>Zielverzeichnis (Root-Zugriff)</label>
-      <select id="dirPreset" onchange="applyDirPreset()">
-        <option value="/var/www/html">Webserver-Root (/var/www/html)</option>
-        <option value="custom">/var/www/html/[eigener Ordner]</option>
-        <option value="/home">Home-Verzeichnis (/home)</option>
-        <option value="/opt">Programme (/opt)</option>
-        <option value="/">Voller Root-Zugriff (/)</option>
-        <option value="manual">Manuell eingeben...</option>
-      </select>
-      <input type="text" id="directory" value="/var/www/html" style="margin-top:6px">
-
-      <label>Deine Aufgabe f\u00fcr den Agenten</label>
-      <textarea id="taskPrompt" placeholder="z.B.: Erstelle eine vollst\u00e4ndige Restaurant-Webseite mit HTML, CSS und einer Speisekarte im Ordner /var/www/html/restaurant. Behebe alle Fehler und stelle sicher, dass die Seite sch\u00f6n aussieht."></textarea>
-
-      <label>Deadline (Uhrzeit, bis wann der Agent arbeiten darf)</label>
-      <input type="time" id="deadline" value="15:00">
-
-      <button class="btn btn-start" onclick="startAgent()">&#9654; Agent starten</button>
-      <button class="btn btn-stop"  onclick="stopAgent()" style="display:none" id="btnStop">&#9632; Agent stoppen</button>
-    </div>
-
-    <div class="sessions" id="sessionsBox" style="display:none">
-      <div class="card">
-        <h2>&#128295; Aktive Sessions</h2>
-        <div id="sessionList"></div>
-      </div>
+    <label>Arbeitsverzeichnis (Workspace)</label>
+    <select id="dirPreset" onchange="checkRootWarning()">
+      <option value="/var/www/html">Webserver (/var/www/html)</option>
+      <option value="/home">Home-Ordner (/home)</option>
+      <option value="/">⚠️ Voller Root-Zugriff (/)</option>
+    </select>
+    <input type="text" id="directory" value="/var/www/html" style="margin-top:6px;">
+    
+    <div id="rootWarning" class="root-warning">
+      <strong>ACHTUNG: Voller Root-Zugriff!</strong>
+      Das Programm erh\u00e4lt kompletten Zugriff auf den Server. Die KI kann alles machen: Server updaten, ausschalten, neustarten, Programme l\u00f6schen usw. - wie ein echter Root-Benutzer!
     </div>
   </div>
 
-  <!-- RECHTE SPALTE: Live-Log -->
-  <div class="card">
-    <h2>&#128250; Live-Terminal-Output</h2>
-    <div class="status-bar">WebSocket: <span id="wsStatus2">Verbinde...</span> &nbsp;|&nbsp; Session: <span id="currentSession">-</span></div>
-    <div class="console" id="console">Warte auf Agent-Start...
-</div>
-    <div style="margin-top:10px;display:flex;gap:8px">
-      <button onclick="clearConsole()" style="background:#222;color:#888;border:1px solid #333;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:0.8rem">&#128465; Leeren</button>
-      <button onclick="scrollBottom()" style="background:#222;color:#888;border:1px solid #333;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:0.8rem">&#8595; Runterscrollen</button>
+  <!-- CHAT BEREICH -->
+  <div class="main-area">
+    <div class="chat-history" id="chatHistory">
+      <div class="msg ai">Hallo! Stelle hier alles ein und sag mir, was ich programmieren oder am Server tun soll. Wenn ich fertig bin, pausiere ich automatisch, um API-Kosten zu sparen.</div>
     </div>
+    
+    <div class="chat-input-area">
+      <div class="context-help">Zus\u00e4tzliche Dateien an die KI senden (Spart API Kosten, KI liest Ordner/Dateien direkt):</div>
+      <div class="context-box">
+        <input type="text" id="contextPath" placeholder="z.B. /var/www/html/alte_seite.html (Optional)">
+      </div>
+      <div class="chat-input-row">
+        <textarea id="promptInput" placeholder="Schreibe deine Anweisung (z.B. 'Erstelle mir eine Webseite, behebe alle Fehler und melde dich wenn du fertig bist')"></textarea>
+        <button class="btn-send" onclick="sendPrompt()">Senden</button>
+      </div>
+    </div>
+    
+    <!-- TERMINAL LOG (Hidden by default) -->
+    <div class="console-overlay" id="console"></div>
   </div>
 </div>
 
 <script>
+  let sessionId = null;
   let ws;
-  let currentSessionId = null;
 
-  // WebSocket-Verbindung
+  function checkRootWarning() {
+    const v = document.getElementById('dirPreset').value;
+    document.getElementById('directory').value = v;
+    document.getElementById('rootWarning').style.display = (v === '/') ? 'block' : 'none';
+  }
+
+  function toggleConsole() {
+    const c = document.getElementById('console');
+    c.style.display = c.style.display === 'block' ? 'none' : 'block';
+  }
+
+  function addMsg(sender, text) {
+    const h = document.getElementById('chatHistory');
+    const d = document.createElement('div');
+    d.className = `msg ${sender}`;
+    d.innerText = text;
+    h.appendChild(d);
+    h.scrollTop = h.scrollHeight;
+  }
+
+  function addLog(text) {
+    const c = document.getElementById('console');
+    const d = document.createElement('div');
+    d.className = 'log-info'; d.innerText = text;
+    c.appendChild(d);
+    c.scrollTop = c.scrollHeight;
+  }
+
+  // WebSocket verbinden
   function connectWS() {
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
     ws = new WebSocket(`${proto}://${location.host}`);
-    ws.onopen  = () => setWsStatus(true);
-    ws.onclose = () => { setWsStatus(false); setTimeout(connectWS, 3000); };
-    ws.onerror = () => setWsStatus(false);
     ws.onmessage = (e) => {
       const msg = JSON.parse(e.data);
-      if (msg.type === 'connected') { setWsStatus(true); return; }
-      if (msg.type === 'log') appendLog(msg.message, msg.time);
+      if (msg.type === 'chat') addMsg(msg.sender, msg.message);
+      if (msg.type === 'log')  addLog(msg.message);
     };
+    ws.onclose = () => setTimeout(connectWS, 3000);
   }
+  connectWS();
 
-  function setWsStatus(ok) {
-    const s = ok ? '&#9679; Verbunden' : '&#9679; Getrennt';
-    document.getElementById('wsStatus').innerHTML  = s;
-    document.getElementById('wsStatus2').innerHTML = s;
-    document.getElementById('wsStatus').style.color  = ok ? 'var(--green)' : 'var(--red)';
-    document.getElementById('wsStatus2').style.color = ok ? 'var(--green)' : 'var(--red)';
-  }
+  async function sendPrompt() {
+    const provider    = document.getElementById('provider').value;
+    const apiKey      = document.getElementById('apiKey').value.trim();
+    const directory   = document.getElementById('directory').value.trim();
+    const deadline    = document.getElementById('deadline').value;
+    const prompt      = document.getElementById('promptInput').value.trim();
+    const contextPath = document.getElementById('contextPath').value.trim();
 
-  function appendLog(msg, time) {
-    const con = document.getElementById('console');
-    let cls = 'log-info';
-    if (msg.includes('\u274c'))  cls = 'log-err';
-    else if (msg.includes('\u26a0\ufe0f'))  cls = 'log-warn';
-    else if (msg.includes('\u2705') || msg.includes('\u2714')) cls = 'log-ok';
-    else if (msg.includes('\ud83d\udcbb'))  cls = 'log-cmd';
-    else if (msg.includes('Schritt')) cls = 'log-step';
+    if(!prompt) return;
+    if(!apiKey && !sessionId) { alert("API Key fehlt!"); return; }
 
-    const line = document.createElement('div');
-    line.className = cls;
-    line.textContent = (time ? `[${time}] ` : '') + msg;
-    con.appendChild(line);
-    scrollBottom();
-  }
+    document.getElementById('promptInput').value = '';
+    document.getElementById('contextPath').value = '';
 
-  function scrollBottom() {
-    const con = document.getElementById('console');
-    con.scrollTop = con.scrollHeight;
-  }
-
-  function clearConsole() {
-    document.getElementById('console').innerHTML = '';
-  }
-
-  function applyDirPreset() {
-    const v = document.getElementById('dirPreset').value;
-    if (v !== 'manual' && v !== 'custom') document.getElementById('directory').value = v;
-  }
-
-  async function startAgent() {
-    const provider   = document.getElementById('provider').value;
-    const apiKey     = document.getElementById('apiKey').value.trim();
-    const model      = document.getElementById('model').value.trim();
-    const directory  = document.getElementById('directory').value.trim();
-    const taskPrompt = document.getElementById('taskPrompt').value.trim();
-    const deadline   = document.getElementById('deadline').value;
-
-    if (!apiKey)     { alert('Bitte API Key eingeben!'); return; }
-    if (!taskPrompt) { alert('Bitte Aufgabe eingeben!'); return; }
-    if (!directory)  { alert('Bitte Verzeichnis eingeben!'); return; }
-
-    clearConsole();
-    appendLog('\ud83d\ude80 Sende Anfrage an Server...');
-
-    try {
+    // Wenn es noch keine Session gibt -> Neu starten
+    if(!sessionId) {
       const res = await fetch('/api/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider, apiKey, model, directory, taskPrompt, deadline })
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider, apiKey, directory, prompt, deadline, contextPath })
       });
-      if (res.status === 401) { alert('Falsche Login-Daten!'); return; }
+      if(res.status === 401) { alert("Falscher Login!"); return; }
       const data = await res.json();
-      if (data.success) {
-        currentSessionId = data.sessionId;
-        document.getElementById('currentSession').textContent = data.sessionId;
-        document.getElementById('btnStop').style.display = 'block';
-        appendLog(`\u2705 Agent ${data.sessionId} gestartet!`);
-        refreshSessions();
-      } else {
-        appendLog(`\u274c Fehler: ${data.error}`);
-      }
-    } catch(e) {
-      appendLog(`\u274c Netzwerkfehler: ${e.message}`);
+      sessionId = data.sessionId;
+    } else {
+      // Existierende Session -> Chat Nachricht senden
+      await fetch('/api/chat', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, prompt, contextPath })
+      });
     }
   }
-
-  async function stopAgent() {
-    if (!currentSessionId) return;
-    try {
-      const res = await fetch(`/api/stop/${currentSessionId}`, { method: 'POST' });
-      const data = await res.json();
-      appendLog(data.success ? `\u26d4 Agent ${currentSessionId} gestoppt.` : '\u26a0\ufe0f Kein aktiver Agent gefunden.');
-      document.getElementById('btnStop').style.display = 'none';
-      currentSessionId = null;
-    } catch(e) { appendLog(`\u274c Fehler: ${e.message}`); }
-  }
-
-  async function refreshSessions() {
-    try {
-      const res = await fetch('/api/agents');
-      if (!res.ok) return;
-      const data = await res.json();
-      const box  = document.getElementById('sessionsBox');
-      const list = document.getElementById('sessionList');
-      if (data.agents.length > 0) {
-        box.style.display = 'block';
-        list.innerHTML = data.agents.map(id => `<span class="session-badge">&#9679; ${id}</span>`).join('');
-      } else {
-        box.style.display = 'none';
-      }
-    } catch(e) {}
-  }
-
-  setInterval(refreshSessions, 5000);
-  connectWS();
-  refreshSessions();
 </script>
 </body>
 </html>

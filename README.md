@@ -1,89 +1,28 @@
-# 🤖 KI-Agent – Persönlicher AI-Agent
+# 🤖 KI-Agent – Dein persönlicher Server-Agent
 
-Ein autonomer KI-Agent mit Web-Interface, der direkt auf deinem Linux-Server läuft und Aufgaben selbstständig erledigt.
+Ein autonomer KI-Agent mit echtem Chat-Interface, der direkt auf deinem Linux-Server läuft und Aufgaben selbstständig erledigt. Er kann programmieren, Fehler beheben und auf Rückfragen im Chat reagieren.
 
-## Features
-
+## Neue Features in dieser Version
+- 💬 **Echtes Chat-Interface**: Kommuniziere mit der KI wie in einem Messenger. Gib ihr während der Arbeit neue Anweisungen.
+- ⏸️ **Intelligente Pause**: Wenn die KI fertig ist (z.B. "Ich habe alle Fehler behoben"), stoppt sie API-Anfragen komplett und spart dir Geld. Sie wartet dann auf deine nächste Chat-Nachricht.
+- 📁 **Dateien direkt senden (Context)**: Wähle Ordner oder Dateien aus, die der Server direkt einliest und an die API schickt. So sparst du Tokens, weil die KI den Code nicht erst mit Bash-Befehlen auslesen muss.
+- ⚠️ **Root-Warnung**: Ein integrierter Warnhinweis, falls du der KI Vollzugriff (`/`) auf den Server gibst (sie kann dann wie ein Root-Nutzer *alles* machen, inkl. Neustart oder Löschen).
 - 🌐 **Web-Interface** auf Port 8460 (aus dem Internet erreichbar)
-- 🔐 **Login-Schutz** mit Benutzername + Passwort
-- 🤖 **Mehrere KI-Anbieter**: OpenAI, Groq, Claude (Anthropic), OpenRouter
-- 💻 **Root-Zugriff** auf den Server (Dateien erstellen, Programme installieren etc.)
-- ⏰ **Deadline-Funktion**: Arbeitet z.B. bis 15:00 Uhr automatisch
-- 🟢 **Live-Logs** im Browser via WebSocket
-- 🔄 **Autonome Fehlerkorrektur**: Erkennt Fehler, repariert sich selbst
-- 📂 **Verzeichnisauswahl**: `/var/www/html`, `/home`, `/opt`, oder alles (`/`)
 
 ## Installation (Ubuntu / Debian)
 
 ```bash
-# 1. Repository clonen
 git clone https://github.com/cali72mero/ki-agent.git
 cd ki-agent
-
-# 2. Installer ausführen (als Root)
 sudo bash install.sh
 ```
 
-Der Installer fragt dich nach:
-- **Benutzername** (Standard: `admin`)
-- **Passwort** (selbst wählen)
-- **Port** (Standard: `8460`)
-
-Danach ist der Agent als **systemd-Dienst** eingerichtet und startet automatisch bei jedem Server-Neustart.
-
 ## Benutzung
-
-1. Gehe zu `http://DEINE-SERVER-IP:8460`
-2. Logge dich mit deinen Zugangsdaten ein
-3. Wähle deinen KI-Anbieter und gib deinen API Key ein
-4. Gib das Zielverzeichnis an (z.B. `/var/www/html/meinprojekt`)
-5. Schreibe deine Aufgabe: *"Erstelle eine vollständige Website mit HTML, CSS..."*
-6. Setze eine Deadline (z.B. 15:00 Uhr)
-7. Klicke **Agent starten** – und schau zu wie die KI arbeitet!
-
-## API Keys bekommen
-
-| Anbieter | Link | Kosten |
-|----------|------|--------|
-| Groq | https://console.groq.com | Kostenlos |
-| OpenAI | https://platform.openai.com | Bezahlt |
-| Claude | https://console.anthropic.com | Bezahlt |
-| OpenRouter | https://openrouter.ai | Beides |
-
-## Systemd-Befehle
-
-```bash
-sudo systemctl start ki-agent     # Starten
-sudo systemctl stop ki-agent      # Stoppen
-sudo systemctl restart ki-agent   # Neu starten
-sudo journalctl -u ki-agent -f    # Live-Logs
-```
-
-## Firewall
-
-```bash
-# Port freigeben
-sudo ufw allow 8460
-```
-
-## Projektstruktur
-
-```
-ki-agent/
-├── agent.js              # Haupt-Einstiegspunkt
-├── package.json          # Node.js Abhängigkeiten
-├── install.sh            # Automatischer Installer
-├── config.json           # Erstellt beim Install
-├── src/
-│   ├── server.js         # Express + WebSocket Server
-│   ├── agent-loop.js     # Autonome KI-Schleife
-│   ├── api-providers.js  # OpenAI, Groq, Claude, OpenRouter
-│   ├── shell-executor.js # Bash-Befehlsausführung
-│   └── config.js         # Konfigurationsverwaltung
-└── public/
-    └── index.html        # Web-Interface
-```
+1. Öffne `http://DEINE-IP:8460`
+2. Wähle z.B. **Groq** (Kostenlos) oder **OpenAI**.
+3. Stelle dein Arbeitsverzeichnis ein (z.B. `/var/www/html`).
+4. Schreibe in den Chat: *"Erstelle mir eine Webseite. Behebe alle Fehler. Wenn du fertig bist, melde dich und warte auf Antwort."*
+5. Beobachte, wie die KI den Code schreibt, Fehler analysiert und repariert. Wenn sie fertig ist, fragt sie dich im Chat nach der nächsten Aufgabe!
 
 ---
-
-Gebaut für einfaches Self-Hosting auf Linux-Servern (Ubuntu / Debian).
+Gebaut für einfaches Self-Hosting auf Linux-Servern.

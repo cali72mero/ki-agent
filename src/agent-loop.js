@@ -1,128 +1,117 @@
+// Update: Chat, Pausen-System & Kontext integriert
+const EventEmitter = require('events');
 const { callLLM }        = require('./api-providers');
 const { executeCommand } = require('./shell-executor');
 
-// Aktive Agent-Sessions (sessionId -> { running: bool })
 const activeAgents = new Map();
 
-/**
- * Haupt-Agent-Schleife. L\u00e4uft autonom bis Deadline oder TASK_COMPLETED.
- * @param {string}   sessionId  - Eindeutige Session-ID
- * @param {object}   config     - { provider, apiKey, model, directory, taskPrompt, deadlineMs }
- * @param {function} onLog      - Callback f\u00fcr Live-Log-Ausgabe
- */
-async function runAgent(sessionId, config, onLog) {
-    const { provider, apiKey, model, directory, taskPrompt, deadlineMs } = config;
+async function runAgent(sessionId, config, onLog, onChat) {
+    const { provider, apiKey, model, directory, initialPrompt, deadlineMs, initialContextData } = config;
+    
+    const emitter = new EventEmitter();
+    activeAgents.set(sessionId, { running: true, emitter });
 
-    activeAgents.set(sessionId, { running: true });
+    onLog(`\ud83d\ude80 Agent gestartet im Verzeichnis: ${directory}`);
 
-    onLog(`\ud83d\ude80 Agent [${sessionId}] gestartet!`);
-    onLog(`\ud83d\udcc2 Verzeichnis: ${directory}`);
-    onLog(`\ud83d\udccb Aufgabe: ${taskPrompt}`);
-    onLog(`\u23f0 Deadline: ${new Date(deadlineMs).toLocaleTimeString('de-DE')}`);
-    onLog('---');
-
-    const systemPrompt = `Du bist ein autonomer Linux-Entwickler und System-Administrator mit Root-Rechten.
+    const systemPrompt = `Du bist ein autonomer Linux-Entwickler und Server-Admin mit Root-Rechten.
 Arbeitsverzeichnis: ${directory}
-Betriebssystem: Linux (Ubuntu/Debian)
 
-AUFGABE: ${taskPrompt}
+REGELN:
+1. Wenn du am Arbeiten bist und Befehle ausf\u00fchren willst, antworte IMMER nur mit genau EINEM Bash-Befehl (kein Text au\u00dferhalb des Befehls!).
+2. Nutze f\u00fcr Dateien: cat > datei.txt << 'EOF' ... EOF
+3. WICHTIG: Wenn du deine aktuelle Aufgabe vollst\u00e4ndig erledigt und alle Fehler behoben hast, antworte exakt mit dem Keyword: TASK_COMPLETED
+Nach TASK_COMPLETED wartet das System auf neue Nachrichten vom Nutzer.`;
 
-REGELN (sehr wichtig):
-- Antworte IMMER nur mit EINEM einzigen Bash-Befehl
-- Kein Erkl\u00e4rungstext, kein Markdown, kein Code-Block - nur der reine Befehl
-- F\u00fcr mehrzeilige Dateien: cat > datei.txt << 'EOF'\ninhalt\nEOF
-- Wenn die Aufgabe vollst\u00e4ndig und fehlerfrei erledigt ist: antworte exakt TASK_COMPLETED
-- Bei Fehlern im Output: analysiere und repariere automatisch im n\u00e4chsten Schritt`;
+    let messages = [{ role: 'system', content: systemPrompt }];
 
-    const messages = [
-        { role: 'system', content: systemPrompt },
-        { role: 'user',   content: 'Starte die Aufgabe. Was ist dein erster Bash-Befehl?' }
-    ];
+    let firstMsg = initialPrompt;
+    if (initialContextData) {
+        firstMsg = `Hier sind hochgeladene/gelesene Kontext-Daten (Dateien/Verzeichnisse):\n${initialContextData}\n\nAufgabe:\n${initialPrompt}`;
+    }
+    messages.push({ role: 'user', content: firstMsg });
+    onChat('user', initialPrompt);
 
+    let isWaitingForUser = false;
     let step = 0;
-    const MAX_STEPS = 80;
 
-    while (Date.now() < deadlineMs && step < MAX_STEPS) {
+    // Event Listener f\u00fcr Chat-Nachrichten w\u00e4hrend der Laufzeit
+    emitter.on('chat', (userMsg, ctxData) => {
+        let content = userMsg;
+        if(ctxData) content = `Kontext-Daten:\n${ctxData}\n\nNeue Anweisung:\n${userMsg}`;
+        messages.push({ role: 'user', content });
+        onChat('user', userMsg);
+        isWaitingForUser = false; // Aufwachen
+        onLog('\u25b6\ufe0f Neue Chat-Nachricht erhalten, setze Arbeit fort...');
+        emitter.emit('resume');
+    });
+
+    while (Date.now() < deadlineMs) {
         const agent = activeAgents.get(sessionId);
-        if (!agent || !agent.running) {
-            onLog('\u26d4 Agent wurde manuell gestoppt.');
-            break;
+        if (!agent || !agent.running) break;
+
+        if (isWaitingForUser) {
+            onLog('\u23f8 KI pausiert (spart API-Kosten) und wartet auf neue Nachricht im Chat...');
+            await new Promise(resolve => emitter.once('resume', resolve));
+            continue;
         }
 
         step++;
-        onLog(`\n\ud83e\udd14 Schritt ${step}: Frage KI (${provider})...`);
+        onLog(`\u2692\ufe0f Schritt ${step}: Analysiere & Programmiere...`);
 
         let kiAntwort;
         try {
             kiAntwort = await callLLM(provider, apiKey, messages, model);
         } catch (err) {
             onLog(`\u274c API-Fehler: ${err.message}`);
-            onLog('\u23f3 Warte 10 Sekunden und versuche erneut...');
-            await sleep(10000);
+            await new Promise(r => setTimeout(r, 5000));
             continue;
         }
 
-        // Codeblock-Bereinigung (falls KI trotzdem Backticks schickt)
         const cmdRaw = kiAntwort.replace(/^```(bash|sh)?\n?/i, '').replace(/\n?```$/,'').trim();
 
-        if (cmdRaw.toUpperCase().includes('TASK_COMPLETED')) {
-            onLog('\u2705 KI meldet: Aufgabe vollst\u00e4ndig und fehlerfrei erledigt!');
-            break;
+        // Wenn KI fertig ist -> in Standby gehen
+        if (cmdRaw.includes('TASK_COMPLETED')) {
+            const aiReply = "\u2705 Ich habe alle Fehler behoben und die Aufgabe abgeschlossen. Was soll ich als N\u00e4chstes tun?";
+            onChat('ai', aiReply);
+            messages.push({ role: 'assistant', content: cmdRaw }); // Histroy behalten
+            isWaitingForUser = true; // API stoppen
+            continue;
         }
 
-        onLog(`\ud83d\udcbb Befehl: ${cmdRaw}`);
-
+        onLog(`\ud83d\udcbb F\u00fchre aus: ${cmdRaw.substring(0, 80)}...`);
         const result = await executeCommand(cmdRaw, directory);
 
         let feedback = '';
-        if (result.stdout) {
-            onLog(`\ud83d\udce4 Output:\n${result.stdout}`);
-            feedback += `STDOUT:\n${result.stdout}\n`;
-        }
-        if (result.stderr) {
-            onLog(`\u26a0\ufe0f  STDERR:\n${result.stderr}`);
-            feedback += `STDERR:\n${result.stderr}\n`;
-        }
-        if (result.error) {
-            onLog(`\u274c Exit-Fehler: ${result.error}`);
-            feedback += `EXIT ERROR: ${result.error}\n`;
-        }
-        if (!result.stdout && !result.stderr && !result.error) {
-            onLog('\u2714 Befehl erfolgreich (kein Output).');
-        }
+        if (result.stdout) feedback += `STDOUT:\n${result.stdout}\n`;
+        if (result.stderr) feedback += `STDERR:\n${result.stderr}\n`;
+        if (result.error)  feedback += `EXIT ERROR: ${result.error}\n`;
 
-        // Konversation aktualisieren
         messages.push({ role: 'assistant', content: kiAntwort });
         messages.push({
             role: 'user',
-            content: feedback
-                ? `Befehlsausgabe:\n${feedback}\nAnalysiere und f\u00fchre den n\u00e4chsten Schritt aus.`
-                : 'Befehl erfolgreich. N\u00e4chster Schritt?'
+            content: feedback ? `Ausgabe:\n${feedback}\nAnalysiere Fehler und f\u00fchre n\u00e4chsten Schritt aus.` : 'Erfolgreich. N\u00e4chster Schritt?'
         });
 
-        // Konversation kurz halten (Token-Limit)
-        if (messages.length > 24) messages.splice(1, 4);
+        // Token Limit Management
+        if (messages.length > 30) messages.splice(1, 4);
 
-        await sleep(2500);
+        await new Promise(r => setTimeout(r, 2000));
     }
 
-    if (Date.now() >= deadlineMs) onLog('\u23f0 Deadline erreicht. Agent stoppt.');
-    else if (step >= MAX_STEPS)   onLog(`\ud83d\udd04 Max. ${MAX_STEPS} Schritte erreicht. Agent stoppt.`);
-
+    if(Date.now() >= deadlineMs) onChat('ai', '\u23f0 Meine Deadline ist erreicht. Ich stelle die Arbeit ein.');
     activeAgents.delete(sessionId);
-    onLog('\n\ud83c\udfc1 Agent-Session beendet.');
+}
+
+function sendChatMessage(sessionId, msg, contextData) {
+    const agent = activeAgents.get(sessionId);
+    if(agent) { agent.emitter.emit('chat', msg, contextData); return true; }
+    return false;
 }
 
 function stopAgent(sessionId) {
     const a = activeAgents.get(sessionId);
-    if (a) { a.running = false; return true; }
+    if (a) { a.running = false; a.emitter.emit('resume'); return true; }
     return false;
 }
 
-function getActiveAgents() {
-    return Array.from(activeAgents.keys());
-}
-
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-module.exports = { runAgent, stopAgent, getActiveAgents };
+module.exports = { runAgent, sendChatMessage, stopAgent };

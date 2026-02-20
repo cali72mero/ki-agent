@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// Update: Chat-Interface & Root-Zugriff integriert
 
 const { createServer } = require('./src/server');
 const { getConfig } = require('./src/config');
