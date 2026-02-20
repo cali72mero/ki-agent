@@ -1,7 +1,7 @@
 {
   "name": "ki-agent",
   "version": "1.0.0",
-  "description": "Pers\u00f6nlicher KI-Agent - Wie OpenClaw. Web-Interface auf Port 8460, unterst\u00fctzt OpenAI, Groq, Claude, OpenRouter.",
+  "description": "Pers\u00f6nlicher KI-Agent mit Web-Interface auf Port 8460. Unterst\u00fctzt OpenAI, Groq, Claude und OpenRouter. L\u00e4uft auf Ubuntu/Debian Linux.",
   "main": "agent.js",
   "scripts": {
     "start": "node agent.js",
