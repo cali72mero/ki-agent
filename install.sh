@@ -8,11 +8,11 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m'
 
-echo -e "${BLUE}  ┌──────────────────────────────────────┐"
-echo -e "  │  🤖  KI-Agent Installer             │"
-echo -e "  └──────────────────────────────────────┘${NC}\n"
+echo -e "${BLUE}  \u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510"
+echo -e "  \u2502  \ud83e\udd16  KI-Agent Installer             \u2502"
+echo -e "  \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518${NC}\n"
 
-if [ "$EUID" -ne 0 ]; then echo -e "${RED}Bitte als Root ausführen (sudo bash install.sh)${NC}"; exit 1; fi
+if [ "$EUID" -ne 0 ]; then echo -e "${RED}Bitte als Root ausf\u00fchren (sudo bash install.sh)${NC}"; exit 1; fi
 
 if ! command -v node &> /dev/null; then
   curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
@@ -57,5 +57,6 @@ systemctl daemon-reload
 systemctl enable ki-agent
 systemctl start ki-agent
 
-PUBLIC_IP=$(curl -s ifconfig.me || echo "DEINE-IP")
-echo -e "\n${GREEN}✔ Installiert! Web-Interface: http://${PUBLIC_IP}:${PORT}${NC}\n"
+# Erzwingt IPv4-Ausgabe mit curl -4
+PUBLIC_IP=$(curl -4 -s ifconfig.me || echo "DEINE-IP")
+echo -e "\n${GREEN}\u2714 Installiert! Web-Interface (IPv4): http://${PUBLIC_IP}:${PORT}${NC}\n"
