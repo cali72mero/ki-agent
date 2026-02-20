@@ -10,6 +10,7 @@
     body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; }
     header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; }
     header h1 { font-size: 1.2rem; color: var(--accent); }
+    .logout-btn { margin-left: auto; background: var(--red); color: #fff; border: none; border-radius: 6px; padding: 6px 16px; cursor: pointer; font-size: 0.85rem; }
     
     .layout { display: flex; flex: 1; overflow: hidden; }
     .sidebar { width: 340px; background: var(--surface); border-right: 1px solid var(--border); padding: 20px; overflow-y: auto; }
@@ -21,37 +22,35 @@
     .root-warning { display: none; background: #ff45451a; border: 1px solid var(--red); color: var(--red); padding: 10px; border-radius: 6px; font-size: 0.8rem; margin-top: 8px; line-height: 1.4; }
     .root-warning strong { display: block; margin-bottom: 4px; }
 
-    /* Chat Area */
     .chat-history { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
     .msg { max-width: 80%; padding: 12px 16px; border-radius: 12px; font-size: 0.95rem; line-height: 1.5; }
     .msg.user { background: var(--accent); color: #000; align-self: flex-end; border-bottom-right-radius: 2px; }
     .msg.ai { background: var(--surface); border: 1px solid var(--border); color: var(--text); align-self: flex-start; border-bottom-left-radius: 2px; }
     
-    /* Input Area */
     .chat-input-area { padding: 16px; background: var(--surface); border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
     .chat-input-row { display: flex; gap: 10px; }
     .chat-input-row textarea { flex: 1; background: #111; border: 1px solid var(--border); border-radius: 8px; color: #fff; padding: 12px; min-height: 50px; resize: vertical; outline: none; }
     .btn-send { background: var(--accent); color: #000; border: none; border-radius: 8px; padding: 0 20px; font-weight: bold; cursor: pointer; }
     
-    /* Context Input */
     .context-box { display: flex; gap: 8px; align-items: center; }
     .context-box input { flex: 1; background: #222; border: 1px dashed var(--muted); }
     .context-help { font-size: 0.7rem; color: var(--muted); }
 
-    /* Console overlay */
     .console-overlay { position: absolute; top: 0; right: 0; width: 350px; bottom: 0; background: #050505e6; border-left: 1px solid var(--border); padding: 10px; overflow-y: auto; font-family: monospace; font-size: 0.75rem; display: none; }
     .log-info { color: #aaa; margin-bottom: 4px; }
+    
+    .ssl-hint { background: #1a3a1a; border: 1px solid var(--green); color: var(--green); padding: 8px; border-radius: 6px; font-size: 0.75rem; margin-top: 8px; line-height: 1.3; }
   </style>
 </head>
 <body>
 
 <header>
   <h1>&#129302; KI-Agent v0.0.1 Beta</h1>
-  <button onclick="toggleConsole()" style="margin-left:auto; background:#222; color:#fff; border:1px solid #444; border-radius:4px; padding:4px 10px; cursor:pointer; font-size:0.8rem;">Terminal ein/ausblenden</button>
+  <button onclick="toggleConsole()" style="margin-left:auto; background:#222; color:#fff; border:1px solid #444; border-radius:4px; padding:4px 10px; cursor:pointer; font-size:0.8rem; margin-right:10px;">Terminal</button>
+  <button class="logout-btn" onclick="logout()">Abmelden</button>
 </header>
 
 <div class="layout">
-  <!-- EINSTELLUNGEN -->
   <div class="sidebar">
     <h3 style="font-size:0.9rem; color:var(--accent); margin-bottom:10px;">1. Konfiguration</h3>
     
@@ -72,7 +71,7 @@
     <label>Deadline (Uhrzeit)</label>
     <input type="time" id="deadline" value="15:00">
 
-    <label>Arbeitsverzeichnis (Workspace)</label>
+    <label>Arbeitsverzeichnis</label>
     <select id="dirPreset" onchange="checkRootWarning()">
       <option value="/var/www/html">Webserver (/var/www/html)</option>
       <option value="/home">Home-Ordner (/home)</option>
@@ -82,32 +81,42 @@
     
     <div id="rootWarning" class="root-warning">
       <strong>ACHTUNG: Voller Root-Zugriff!</strong>
-      Das Programm erh\u00e4lt kompletten Zugriff auf den Server. Die KI kann alles machen: Server updaten, ausschalten, neustarten, Programme l\u00f6schen usw. - wie ein echter Root-Benutzer!
+      Das Programm erhält kompletten Zugriff auf den Server.
     </div>
 
-    <!-- UPDATE BUTTON -->
     <hr style="border:0; border-top:1px solid var(--border); margin: 20px 0 10px 0;">
-    <button onclick="updateSystem()" style="width:100%; background:#222; color:var(--green); border:1px solid var(--green); border-radius:6px; padding:8px; font-size:0.8rem; cursor:pointer; font-weight:bold;">&#8635; System auf Updates pr\u00fcfen</button>
+    
+    <label>Domain für SSL/HTTPS (Optional)</label>
+    <input type="text" id="domainInput" placeholder="z.B. ki-agent.deine-domain.de">
+    <button onclick="saveDomain()" style="width:100%; background:#222; color:var(--accent); border:1px solid var(--accent); border-radius:6px; padding:6px; font-size:0.75rem; cursor:pointer; margin-top:6px;">Domain speichern</button>
+    <div class="ssl-hint">
+      <strong>ℹ️ SSL/HTTPS einrichten:</strong><br>
+      1. Domain auf Server-IP zeigen lassen<br>
+      2. Nginx als Reverse Proxy installieren<br>
+      3. Let's Encrypt SSL-Zertifikat holen<br>
+      Anleitung: <a href="https://github.com/cali72mero/ki-agent#ssl" target="_blank" style="color:var(--green);">GitHub README</a>
+    </div>
+
+    <hr style="border:0; border-top:1px solid var(--border); margin: 20px 0 10px 0;">
+    <button onclick="updateSystem()" style="width:100%; background:#222; color:var(--green); border:1px solid var(--green); border-radius:6px; padding:8px; font-size:0.8rem; cursor:pointer; font-weight:bold;">&#8635; System updaten</button>
   </div>
 
-  <!-- CHAT BEREICH -->
   <div class="main-area">
     <div class="chat-history" id="chatHistory">
-      <div class="msg ai">Hallo! Stelle hier alles ein und sag mir, was ich programmieren oder am Server tun soll. Wenn ich fertig bin, pausiere ich automatisch, um API-Kosten zu sparen.</div>
+      <div class="msg ai">Hallo! Stelle hier alles ein und sag mir, was ich programmieren soll.</div>
     </div>
     
     <div class="chat-input-area">
-      <div class="context-help">Zus\u00e4tzliche Dateien an die KI senden (Spart API Kosten, KI liest Ordner/Dateien direkt):</div>
+      <div class="context-help">Dateien/Ordner an die KI senden (spart API-Kosten):</div>
       <div class="context-box">
-        <input type="text" id="contextPath" placeholder="z.B. /var/www/html/alte_seite.html (Optional)">
+        <input type="text" id="contextPath" placeholder="z.B. /var/www/html/index.html (Optional)">
       </div>
       <div class="chat-input-row">
-        <textarea id="promptInput" placeholder="Schreibe deine Anweisung (z.B. 'Erstelle mir eine Webseite, behebe alle Fehler und melde dich wenn du fertig bist')"></textarea>
+        <textarea id="promptInput" placeholder="z.B. 'Erstelle eine Webseite und behebe alle Fehler'"></textarea>
         <button class="btn-send" onclick="sendPrompt()">Senden</button>
       </div>
     </div>
     
-    <!-- TERMINAL LOG (Hidden by default) -->
     <div class="console-overlay" id="console"></div>
   </div>
 </div>
@@ -144,7 +153,6 @@
     c.scrollTop = c.scrollHeight;
   }
 
-  // WebSocket verbinden
   function connectWS() {
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
     ws = new WebSocket(`${proto}://${location.host}`);
@@ -156,6 +164,30 @@
     ws.onclose = () => setTimeout(connectWS, 3000);
   }
   connectWS();
+
+  async function logout() {
+    await fetch('/api/logout', { method: 'POST' });
+    window.location.href = '/';
+  }
+
+  async function loadDomain() {
+    const res = await fetch('/api/settings/domain');
+    if(res.ok) {
+      const data = await res.json();
+      document.getElementById('domainInput').value = data.domain || '';
+    }
+  }
+  loadDomain();
+
+  async function saveDomain() {
+    const domain = document.getElementById('domainInput').value.trim();
+    await fetch('/api/settings/domain', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ domain })
+    });
+    alert('Domain gespeichert!');
+  }
 
   async function sendPrompt() {
     const provider    = document.getElementById('provider').value;
@@ -171,17 +203,15 @@
     document.getElementById('promptInput').value = '';
     document.getElementById('contextPath').value = '';
 
-    // Wenn es noch keine Session gibt -> Neu starten
     if(!sessionId) {
       const res = await fetch('/api/start', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ provider, apiKey, directory, prompt, deadline, contextPath })
       });
-      if(res.status === 401) { alert("Falscher Login!"); return; }
+      if(res.status === 401) { alert("Session abgelaufen!"); window.location.href='/'; return; }
       const data = await res.json();
       sessionId = data.sessionId;
     } else {
-      // Existierende Session -> Chat Nachricht senden
       await fetch('/api/chat', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId, prompt, contextPath })
@@ -189,24 +219,17 @@
     }
   }
 
-  // NEU: Update System Funktion
   async function updateSystem() {
-    if(!confirm("M\u00f6chtest du nach Updates suchen und diese installieren? Der Agent startet danach kurz neu.\n\nDeine Einstellungen, der Chat-Verlauf im Browser und deine API-Keys bleiben dabei vollst\u00e4ndig erhalten!")) return;
-    
-    addLog("Suche nach Updates auf GitHub...");
-    try {
-      const res = await fetch('/api/update', { method: 'POST' });
-      if(res.status === 401) { alert("Falscher Login!"); return; }
-      const data = await res.json();
-      
-      if(data.success) {
-        addLog(`Update-Log:\n${data.message}`);
-        addLog("\u2714\ufe0f Der Server startet jetzt neu. WebSocket verbindet sich in wenigen Sekunden automatisch wieder...");
-      } else {
-        addLog(`\u274c Update Fehler:\n${data.error}\n${data.details}`);
-      }
-    } catch(e) {
-      addLog(`\u274c Netzwerkfehler beim Update: ${e.message}`);
+    if(!confirm("Updates installieren? Der Agent startet kurz neu.")) return;
+    addLog("Suche nach Updates...");
+    const res = await fetch('/api/update', { method: 'POST' });
+    if(res.status === 401) { alert("Session abgelaufen!"); window.location.href='/'; return; }
+    const data = await res.json();
+    if(data.success) {
+      addLog(`Update-Log:\n${data.message}`);
+      addLog("✔️ Neustart...");
+    } else {
+      addLog(`❌ Fehler:\n${data.error}`);
     }
   }
 </script>

@@ -1,4 +1,4 @@
-// Update: Server mit Update-Endpunkt
+// Update: Session-basiertes Login-System mit Cookie-Support
 const express    = require('express');
 const bodyParser = require('body-parser');
 const http       = require('http');
@@ -7,7 +7,7 @@ const path       = require('path');
 const fs         = require('fs');
 const { exec }   = require('child_process');
 const { v4: uuidv4 } = require('uuid');
-const { getConfig }  = require('./config');
+const { getConfig, saveConfig }  = require('./config');
 const { runAgent, sendChatMessage, stopAgent } = require('./agent-loop');
 
 function createServer() {
@@ -16,7 +16,10 @@ function createServer() {
     const wss    = new WebSocket.Server({ server });
 
     app.use(bodyParser.json());
-    app.use(express.static(path.join(__dirname, '..', 'public')));
+    app.use(bodyParser.urlencoded({ extended: true }));
+
+    // Session-Speicher (im RAM, geht bei Neustart verloren - absichtlich für Sicherheit)
+    const activeSessions = new Map();
 
     const wsClients = new Map();
     wss.on('connection', (ws) => {
@@ -37,13 +40,17 @@ function createServer() {
         });
     }
 
-    function checkAuth(req, res, next) {
-        const cfg = getConfig();
-        const b64 = (req.headers.authorization || '').split(' ')[1] || '';
-        const [u, p] = Buffer.from(b64, 'base64').toString().split(':');
-        if (u === cfg.username && p === cfg.password) return next();
-        res.set('WWW-Authenticate', 'Basic realm="KI-Agent"');
-        res.status(401).send('Authentifizierung erforderlich.');
+    // Session-Cookie prüfen
+    function checkSession(req, res, next) {
+        const cookies = req.headers.cookie || '';
+        const sessionMatch = cookies.match(/session=([^;]+)/);
+        const sessionToken = sessionMatch ? sessionMatch[1] : null;
+
+        if (sessionToken && activeSessions.has(sessionToken)) {
+            req.user = activeSessions.get(sessionToken);
+            return next();
+        }
+        res.status(401).json({ error: 'Nicht eingeloggt. Bitte anmelden.' });
     }
 
     function readContextData(cPath) {
@@ -69,7 +76,62 @@ function createServer() {
         return '';
     }
 
-    app.post('/api/start', checkAuth, (req, res) => {
+    // Login-Seite (statisch)
+    app.get('/', (req, res) => {
+        const cookies = req.headers.cookie || '';
+        const sessionMatch = cookies.match(/session=([^;]+)/);
+        if (sessionMatch && activeSessions.has(sessionMatch[1])) {
+            // Bereits eingeloggt -> Zeige Interface
+            res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
+        } else {
+            // Nicht eingeloggt -> Zeige Login
+            res.sendFile(path.join(__dirname, '..', 'public', 'login.html'));
+        }
+    });
+
+    // Statische Assets (CSS, JS) ohne Auth
+    app.use('/assets', express.static(path.join(__dirname, '..', 'public', 'assets')));
+
+    // Login-Endpoint
+    app.post('/api/login', (req, res) => {
+        const { username, password } = req.body;
+        const cfg = getConfig();
+
+        if (username === cfg.username && password === cfg.password) {
+            const sessionToken = uuidv4();
+            activeSessions.set(sessionToken, { username });
+            res.setHeader('Set-Cookie', `session=${sessionToken}; HttpOnly; Path=/; Max-Age=86400`);
+            res.json({ success: true });
+        } else {
+            res.status(401).json({ error: 'Falscher Benutzername oder Passwort' });
+        }
+    });
+
+    // Logout-Endpoint
+    app.post('/api/logout', (req, res) => {
+        const cookies = req.headers.cookie || '';
+        const sessionMatch = cookies.match(/session=([^;]+)/);
+        if (sessionMatch) activeSessions.delete(sessionMatch[1]);
+        res.setHeader('Set-Cookie', 'session=; HttpOnly; Path=/; Max-Age=0');
+        res.json({ success: true });
+    });
+
+    // Domain-Einstellung speichern
+    app.post('/api/settings/domain', checkSession, (req, res) => {
+        const { domain } = req.body;
+        const cfg = getConfig();
+        cfg.domain = domain || '';
+        saveConfig(cfg);
+        res.json({ success: true });
+    });
+
+    // Domain abrufen
+    app.get('/api/settings/domain', checkSession, (req, res) => {
+        const cfg = getConfig();
+        res.json({ domain: cfg.domain || '' });
+    });
+
+    app.post('/api/start', checkSession, (req, res) => {
         const { provider, apiKey, directory, prompt, contextPath, deadline } = req.body;
         
         let deadlineMs = Date.now() + 8 * 60 * 60 * 1000;
@@ -93,15 +155,14 @@ function createServer() {
         res.json({ success: true, sessionId });
     });
 
-    app.post('/api/chat', checkAuth, (req, res) => {
+    app.post('/api/chat', checkSession, (req, res) => {
         const { sessionId, prompt, contextPath } = req.body;
         const ctxData = readContextData(contextPath);
         const ok = sendChatMessage(sessionId, prompt, ctxData);
         res.json({ success: ok });
     });
 
-    // NEU: Update-Endpunkt f\u00fcr das Web-Interface
-    app.post('/api/update', checkAuth, (req, res) => {
+    app.post('/api/update', checkSession, (req, res) => {
         exec('bash /opt/ki-agent/update.sh', (err, stdout, stderr) => {
             if (err) {
                 return res.status(500).json({ success: false, error: err.message, details: stderr });

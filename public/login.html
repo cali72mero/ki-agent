@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - KI-Agent</title>
+  <style>
+    :root { --bg: #0d0d0d; --surface: #1a1a1a; --border: #2d2d2d; --accent: #00d4ff; --text: #e0e0e0; --red: #ff4545; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .login-box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 40px; width: 400px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+    h1 { text-align: center; color: var(--accent); margin-bottom: 30px; font-size: 1.5rem; }
+    label { display: block; font-size: 0.85rem; color: var(--text); margin: 16px 0 6px; }
+    input { width: 100%; background: #111; border: 1px solid var(--border); border-radius: 8px; color: #fff; padding: 12px; font-size: 0.95rem; }
+    button { width: 100%; background: var(--accent); color: #000; border: none; border-radius: 8px; padding: 14px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 24px; }
+    button:hover { opacity: 0.9; }
+    .error { color: var(--red); font-size: 0.85rem; margin-top: 12px; text-align: center; display: none; }
+  </style>
+</head>
+<body>
+  <div class="login-box">
+    <h1>🤖 KI-Agent Login</h1>
+    <form onsubmit="login(event)">
+      <label>Benutzername</label>
+      <input type="text" id="username" required autofocus>
+      
+      <label>Passwort</label>
+      <input type="password" id="password" required>
+      
+      <button type="submit">Anmelden</button>
+      <div class="error" id="error">Falscher Benutzername oder Passwort</div>
+    </form>
+  </div>
+
+  <script>
+    async function login(e) {
+      e.preventDefault();
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      
+      if (res.ok) {
+        window.location.href = '/';
+      } else {
+        document.getElementById('error').style.display = 'block';
+      }
+    }
+  </script>
+</body>
+</html>
