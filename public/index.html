@@ -74,6 +74,10 @@
       <strong>ACHTUNG: Voller Root-Zugriff!</strong>
       Das Programm erh\u00e4lt kompletten Zugriff auf den Server. Die KI kann alles machen: Server updaten, ausschalten, neustarten, Programme l\u00f6schen usw. - wie ein echter Root-Benutzer!
     </div>
+
+    <!-- UPDATE BUTTON -->
+    <hr style="border:0; border-top:1px solid var(--border); margin: 20px 0 10px 0;">
+    <button onclick="updateSystem()" style="width:100%; background:#222; color:var(--green); border:1px solid var(--green); border-radius:6px; padding:8px; font-size:0.8rem; cursor:pointer; font-weight:bold;">&#8635; System auf Updates pr\u00fcfen</button>
   </div>
 
   <!-- CHAT BEREICH -->
@@ -172,6 +176,27 @@
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId, prompt, contextPath })
       });
+    }
+  }
+
+  // NEU: Update System Funktion
+  async function updateSystem() {
+    if(!confirm("M\u00f6chtest du nach Updates suchen und diese installieren? Der Agent startet danach kurz neu.\n\nDeine Einstellungen, der Chat-Verlauf im Browser und deine API-Keys bleiben dabei vollst\u00e4ndig erhalten!")) return;
+    
+    addLog("Suche nach Updates auf GitHub...");
+    try {
+      const res = await fetch('/api/update', { method: 'POST' });
+      if(res.status === 401) { alert("Falscher Login!"); return; }
+      const data = await res.json();
+      
+      if(data.success) {
+        addLog(`Update-Log:\n${data.message}`);
+        addLog("\u2714\ufe0f Der Server startet jetzt neu. WebSocket verbindet sich in wenigen Sekunden automatisch wieder...");
+      } else {
+        addLog(`\u274c Update Fehler:\n${data.error}\n${data.details}`);
+      }
+    } catch(e) {
+      addLog(`\u274c Netzwerkfehler beim Update: ${e.message}`);
     }
   }
 </script>

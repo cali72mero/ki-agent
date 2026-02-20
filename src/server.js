@@ -1,10 +1,11 @@
-// Update: Server mit Chat-Endpoints und Datei-Leser f\u00fcr Kontext
+// Update: Server mit Update-Endpunkt
 const express    = require('express');
 const bodyParser = require('body-parser');
 const http       = require('http');
 const WebSocket  = require('ws');
 const path       = require('path');
 const fs         = require('fs');
+const { exec }   = require('child_process');
 const { v4: uuidv4 } = require('uuid');
 const { getConfig }  = require('./config');
 const { runAgent, sendChatMessage, stopAgent } = require('./agent-loop');
@@ -45,7 +46,6 @@ function createServer() {
         res.status(401).send('Authentifizierung erforderlich.');
     }
 
-    // Liest Dateien/Ordner f\u00fcr die KI, um API Kosten zu sparen (wie bei OpenClaw)
     function readContextData(cPath) {
         if(!cPath) return '';
         try {
@@ -56,7 +56,7 @@ function createServer() {
             }
             if(st.isDirectory()) {
                 let res = `--- Verzeichnis: ${cPath} ---\n`;
-                const files = fs.readdirSync(cPath).slice(0, 8); // Max 8 Dateien um Token zu sparen
+                const files = fs.readdirSync(cPath).slice(0, 8);
                 for(let f of files) {
                     const fp = path.join(cPath, f);
                     if(fs.statSync(fp).isFile()) {
@@ -98,6 +98,16 @@ function createServer() {
         const ctxData = readContextData(contextPath);
         const ok = sendChatMessage(sessionId, prompt, ctxData);
         res.json({ success: ok });
+    });
+
+    // NEU: Update-Endpunkt f\u00fcr das Web-Interface
+    app.post('/api/update', checkAuth, (req, res) => {
+        exec('bash /opt/ki-agent/update.sh', (err, stdout, stderr) => {
+            if (err) {
+                return res.status(500).json({ success: false, error: err.message, details: stderr });
+            }
+            res.json({ success: true, message: stdout });
+        });
     });
 
     return { server, app };
