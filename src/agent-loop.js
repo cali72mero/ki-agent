@@ -1,4 +1,4 @@
-// Fix: Agent MUSS write_file Tags nutzen - strengerer System-Prompt
+// Fix: Auto-Korrektur auch bei erstem Step + stärkerer Prompt
 const { callLLM } = require('./api-providers');
 const { exec } = require('child_process');
 const fs = require('fs');
@@ -17,41 +17,41 @@ function runAgent(sessionId, config, logCallback, chatCallback) {
     const conversationHistory = [
         {
             role: 'system',
-            content: `Du bist ein Coding-Agent der wie OpenClaw/Cursor funktioniert.
+            content: `Du bist ein Coding-Agent. Du musst IMMER XML-Tags nutzen um Dateien zu erstellen.
 
 ARBEITSVERZEICHNIS: ${directory}
-WEBSEITEN-ORDNER: ${webDirectory}
 
-⚠️ KRITISCHE REGEL:
-Du MUSST IMMER die <write_file> Tags nutzen um Dateien zu erstellen!
-NIEMALS nur sagen "Datei erstellt" ohne das <write_file> Tag zu verwenden!
+⚠️⚠️⚠️ KRITISCH ⚠️⚠️⚠️
+Dateien kannst du NUR mit diesem XML-Tag erstellen:
+<write_file path="/voller/pfad.py">CODE HIER</write_file>
 
-FALSCH ❌:
-"Ich erstelle jetzt die Datei maintenance.py"
-✅ Fertig! Datei erstellt: maintenance.py
+OHNE dieses Tag wird KEINE Datei erstellt!
 
-RICHTIG ✅:
-<write_file path="/root/maintenance.py">import flask
-app = flask.Flask(__name__)
+FALSCH ❌ (Datei wird NICHT erstellt):
+User: "Erstelle maintenance.py"
+Du: "Ich erstelle die Datei maintenance.py"
+     ✅ Fertig!
+     
+→ KEINE DATEI ERSTELLT! ❌
 
+RICHTIG ✅ (Datei wird erstellt):
+User: "Erstelle maintenance.py"
+Du: <write_file path="/root/maintenance.py">from flask import Flask
+app = Flask(__name__)
 @app.route('/')
 def home():
-    return "Wartung!"
-
+    return "Hallo!"
 if __name__ == '__main__':
-    app.run()</write_file>
-✅ Fertig! Datei erstellt: maintenance.py
+    app.run(host='0.0.0.0', port=8056)
+</write_file>
+✅ Fertig! Datei erstellt: /root/maintenance.py
 
-TOOLS DIE DU NUTZEN MUSST:
-<write_file path="VOLLER_PFAD">KOMPLETTER CODE</write_file>
-<read_file path="PFAD"/>
-<bash>command</bash>
+→ DATEI WURDE ERSTELLT! ✅
 
-BEISPIEL 1 - Flask App erstellen:
-User: "Erstelle Flask App mit Wartungsseite in /root"
+WICHTIGE BEISPIELE:
 
-Du MUSST antworten:
-<write_file path="/root/maintenance.py">from flask import Flask, render_template
+BEISPIEL 1 - Flask Wartungsseite auf Port 8056:
+<write_file path="/root/maintenance.py">from flask import Flask
 
 app = Flask(__name__)
 
@@ -61,90 +61,78 @@ def maintenance():
 <html>
 <head>
     <title>Wartung</title>
+    <meta charset="utf-8">
     <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: Arial;
+            font-family: Arial, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
         .container {
             text-align: center;
             color: white;
-            padding: 40px;
+            padding: 50px;
             background: rgba(255,255,255,0.1);
             border-radius: 20px;
             backdrop-filter: blur(10px);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
         }
-        h1 { font-size: 3rem; margin-bottom: 20px; }
-        p { font-size: 1.2rem; }
+        h1 { 
+            font-size: 3rem; 
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 10px rgba(0,0,0,0.3);
+        }
+        p { font-size: 1.2rem; opacity: 0.9; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🛠️ Wartungsarbeiten</h1>
+        <p>Wir arbeiten gerade an Verbesserungen.</p>
         <p>Wir sind bald zurück!</p>
     </div>
 </body>
 </html>'''
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=8056)
 </write_file>
-✅ Fertig! Datei erstellt: /root/maintenance.py
 
 BEISPIEL 2 - HTML Webseite:
-User: "Erstelle index.html"
-
-Du MUSST antworten:
 <write_file path="${webDirectory}/index.html"><!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meine Seite</title>
+    <title>Webseite</title>
     <style>
         body {
-            font-family: 'Segoe UI', sans-serif;
+            font-family: Arial;
             background: linear-gradient(135deg, #667eea, #764ba2);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            margin: 0;
             color: white;
-        }
-        .container {
-            text-align: center;
-            padding: 50px;
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
+            margin: 0;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Willkommen!</h1>
-    </div>
+    <h1>Hallo Welt!</h1>
 </body>
 </html></write_file>
-✅ Fertig! Datei erstellt: index.html
 
-PFAD-REGELN:
-- Python/Shell-Scripts mit vollem Pfad: /root/datei.py
-- HTML/CSS/JS: ${webDirectory}/datei.html
-- Bei User-Pfad: Nutze den exakten Pfad
-
-WICHTIG:
-1. IMMER vollständigen, funktionierenden Code schreiben
-2. NIEMALS nur "Ich erstelle..." ohne <write_file> Tag
-3. Moderne, schöne Designs nutzen
-4. Im Chat keine Code-Blöcke zeigen (nur "Datei erstellt")
-5. Nach Dateien: "✅ Fertig! Datei erstellt: DATEINAME"`
+REGELN:
+1. IMMER <write_file> nutzen für Dateien
+2. Voller Pfad: /root/datei.py oder ${webDirectory}/datei.html
+3. Kompletten Code schreiben (nicht "...")
+4. Im Chat keine Code-Blöcke (nur "Datei erstellt")
+5. Python-Dateien → /root/
+6. HTML/CSS/JS → ${webDirectory}/`
         },
         { role: 'user', content: initialContextData + '\n\n' + initialPrompt }
     ];
@@ -162,10 +150,7 @@ WICHTIG:
     };
 
     activeSessions.set(sessionId, session);
-    logCallback(`🚀 Agent gestartet: ${directory}`);
-    if (directory === '/') {
-        logCallback(`🌐 Webseiten: ${webDirectory}`);
-    }
+    logCallback(`🚀 Start: ${directory}`);
     
     agentLoop(sessionId);
 }
@@ -179,7 +164,7 @@ async function agentLoop(sessionId) {
 
     if (session.stepCount > session.maxSteps) {
         session.isPaused = true;
-        chatCallback('ai', `⚠️ Limit erreicht. Neue Anweisung nötig.`);
+        chatCallback('ai', `⚠️ Limit erreicht`);
         logCallback(`⚠️ Limit`);
         return;
     }
@@ -196,7 +181,6 @@ async function agentLoop(sessionId) {
 
         conversationHistory.push({ role: 'assistant', content: response });
         
-        // Entferne Code-Tags aus Chat-Anzeige
         let chatMessage = response;
         chatMessage = chatMessage.replace(/<write_file[^>]*>[\s\S]*?<\/write_file>/g, '');
         chatMessage = chatMessage.replace(/<bash>[\s\S]*?<\/bash>/g, '');
@@ -211,16 +195,10 @@ async function agentLoop(sessionId) {
         const isDone = response.includes('✅') || 
                        response.toLowerCase().includes('fertig') ||
                        response.toLowerCase().includes('abgeschlossen');
-        
-        if (isDone) {
-            session.isPaused = true;
-            logCallback(`✅ Fertig`);
-            return;
-        }
 
         let hasActions = false;
 
-        // Führe Bash-Befehle aus
+        // Bash-Befehle
         const bashMatches = [...response.matchAll(/<bash>([\s\S]*?)<\/bash>/g)];
         for (const match of bashMatches) {
             hasActions = true;
@@ -229,7 +207,7 @@ async function agentLoop(sessionId) {
             
             try {
                 const output = await execPromise(command, config.directory);
-                logCallback(`✅ ${output.substring(0, 200)}`);
+                logCallback(`✅ ${output.substring(0, 150)}`);
                 conversationHistory.push({ role: 'user', content: `Output:\n${output}` });
             } catch(err) {
                 logCallback(`❌ ${err.message}`);
@@ -237,14 +215,13 @@ async function agentLoop(sessionId) {
             }
         }
 
-        // Schreibe Dateien
+        // Dateien schreiben
         const writeMatches = [...response.matchAll(/<write_file path="([^"]+)">([\s\S]*?)<\/write_file>/g)];
         for (const match of writeMatches) {
             hasActions = true;
             let filePath = match[1];
             const fileContent = match[2].trim();
             
-            // Nur relative Pfade anpassen, absolute Pfade beibehalten
             if (!filePath.startsWith('/')) {
                 if (config.directory === '/') {
                     const ext = path.extname(filePath).toLowerCase();
@@ -264,19 +241,18 @@ async function agentLoop(sessionId) {
                 const dir = path.dirname(filePath);
                 if (!fs.existsSync(dir)) {
                     fs.mkdirSync(dir, { recursive: true });
-                    logCallback(`📁 Dir: ${dir}`);
                 }
                 
                 fs.writeFileSync(filePath, fileContent, 'utf8');
                 logCallback(`✅ ${path.basename(filePath)}`);
-                conversationHistory.push({ role: 'user', content: `${filePath} wurde erfolgreich erstellt` });
+                conversationHistory.push({ role: 'user', content: `${filePath} erfolgreich erstellt` });
             } catch(err) {
                 logCallback(`❌ ${err.message}`);
-                conversationHistory.push({ role: 'user', content: `FEHLER beim Erstellen von ${filePath}: ${err.message}. Bitte korrigiere den Pfad oder die Dateirechte.` });
+                conversationHistory.push({ role: 'user', content: `FEHLER: ${err.message}` });
             }
         }
 
-        // Lese Dateien
+        // Dateien lesen
         const readMatches = [...response.matchAll(/<read_file path="([^"]+)"\s*\/>/g)];
         for (const match of readMatches) {
             hasActions = true;
@@ -290,22 +266,35 @@ async function agentLoop(sessionId) {
             
             try {
                 const content = fs.readFileSync(filePath, 'utf8');
-                conversationHistory.push({ role: 'user', content: `Inhalt von ${filePath}:\n${content.substring(0, 2000)}` });
+                conversationHistory.push({ role: 'user', content: `Inhalt:\n${content.substring(0, 2000)}` });
             } catch(err) {
                 logCallback(`❌ ${err.message}`);
-                conversationHistory.push({ role: 'user', content: `Fehler beim Lesen: ${err.message}` });
+                conversationHistory.push({ role: 'user', content: `Fehler: ${err.message}` });
             }
         }
 
-        // Wenn Agent sagt "Fertig" aber keine Dateien erstellt hat
-        if (isDone && !hasActions && session.stepCount > 1) {
-            session.isPaused = false; // NICHT pausieren
+        // AUTO-KORREKTUR: Wenn "Fertig" aber keine Dateien
+        if (isDone && !hasActions) {
+            session.isPaused = false;
             conversationHistory.push({ 
                 role: 'user', 
-                content: 'FEHLER: Du hast gesagt "Fertig" aber keine Dateien erstellt! Du MUSST die <write_file> Tags nutzen um Dateien zu erstellen. Versuche es nochmal und nutze diesmal die Tags!' 
+                content: `❌ FEHLER: Du hast "Fertig" gesagt aber KEINE Dateien erstellt!
+
+Du MUSST dieses XML-Tag nutzen:
+<write_file path="/root/datei.py">CODE</write_file>
+
+Versuche es JETZT NOCHMAL und nutze diesmal das <write_file> Tag!` 
             });
-            logCallback(`⚠️ Keine Dateien erstellt - fordere Korrektur an`);
+            logCallback(`⚠️ KEINE DATEIEN - Korrektur gestartet`);
+            chatCallback('ai', '⚠️ Korrigiere... (nutze jetzt <write_file> Tags)');
             setTimeout(() => agentLoop(sessionId), 1000);
+            return;
+        }
+        
+        // Normale Fertigstellung
+        if (isDone) {
+            session.isPaused = true;
+            logCallback(`✅ Fertig`);
             return;
         }
 
@@ -316,7 +305,7 @@ async function agentLoop(sessionId) {
             if (session.emptyResponseCount >= 3) {
                 session.isPaused = true;
                 logCallback(`⏸ Pausiert`);
-                chatCallback('ai', '⏸ Klarere Anweisung nötig.');
+                chatCallback('ai', '⏸ Klarere Anweisung nötig');
                 return;
             }
         } else {
@@ -326,7 +315,7 @@ async function agentLoop(sessionId) {
         setTimeout(() => agentLoop(sessionId), 2000);
         
     } catch(err) {
-        logCallback(`❌ API: ${err.message}`);
+        logCallback(`❌ ${err.message}`);
         session.isPaused = true;
         chatCallback('ai', `❌ ${err.message}`);
     }
