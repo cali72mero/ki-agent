@@ -70,6 +70,7 @@ Der KI-Agent ist wie ein virtueller Entwickler und Systemadministrator, der rund
 
 ### 🔧 Technische Features
 - **9 API-Provider**: Groq, OpenAI, Claude, Gemini, Mistral, xAI, DeepSeek, Cohere, OpenRouter
+- **Automatische Modell-Auswahl**: Dropdown mit allen verfügbaren Modellen deines Providers
 - **Web-basiertes Update-System**: Ein Klick genügt für Updates
 - **Persistente Datenspeicherung**: Einstellungen überleben Server-Neustarts
 - **IPv4 & IPv6 Support**: Funktioniert auf modernen VPS-Hostern
@@ -108,8 +109,9 @@ Verwende die Zugangsdaten, die du beim `install.sh` eingegeben hast.
 ### 3. API-Key hinterlegen
 1. Wähle einen **Provider** (z.B. **Groq** - kostenlos & schnell)
 2. Gib deinen **API-Key** ein
-3. Optional: Wähle ein **spezifisches Modell** (z.B. `gpt-4o`, `llama-3.3-70b-versatile`)
-4. Klicke auf **"Einstellungen speichern"**
+3. Das System lädt automatisch alle **verfügbaren Modelle** in einem Dropdown
+4. Wähle ein Modell oder nutze das Standard-Modell
+5. Klicke auf **"Einstellungen speichern"**
 
 Dein API-Key wird verschlüsselt gespeichert und automatisch bei jedem Login geladen.
 
@@ -128,6 +130,140 @@ Die KI:
 2. Testet den Code im Browser
 3. Behebt automatisch auftretende Fehler
 4. Meldet sich im Chat: *"✅ Ich habe die Webseite fertiggestellt. Was soll ich als Nächstes tun?"*
+
+---
+
+## 🔐 SSL/HTTPS einrichten (WICHTIG!)
+
+Der KI-Agent läuft standardmäßig auf **unverschlüsseltem HTTP** (Port 80). Für sichere Verbindungen in Produktionsumgebungen solltest du **HTTPS mit SSL-Zertifikat** einrichten.
+
+### Warum SSL/HTTPS?
+- ✅ **Verschlüsselte Verbindung**: Deine Passwörter und API-Keys werden verschlüsselt übertragen
+- ✅ **Browser-Warnung vermeiden**: Keine "Nicht sicher"-Meldung im Browser
+- ✅ **Kostenlos mit Let's Encrypt**: Automatische SSL-Zertifikate ohne Kosten
+
+### Schritt-für-Schritt Anleitung
+
+#### 1. Domain auf Server zeigen lassen
+Gehe zu deinem **Domain-Anbieter** (z.B. Namecheap, Cloudflare, Strato) und erstelle einen **A-Record**:
+
+```
+Type: A
+Name: ki-agent (oder @ für Hauptdomain)
+Value: DEINE-SERVER-IP
+TTL: 300 (oder Auto)
+```
+
+Warte 5-10 Minuten, bis die DNS-Änderungen weltweit verbreitet sind.
+
+**Prüfen ob Domain funktioniert:**
+```bash
+ping ki-agent.deine-domain.de
+```
+
+#### 2. Nginx installieren
+```bash
+sudo apt update
+sudo apt install nginx -y
+```
+
+#### 3. Nginx Reverse Proxy konfigurieren
+Erstelle eine neue Nginx-Konfiguration:
+
+```bash
+sudo nano /etc/nginx/sites-available/ki-agent
+```
+
+Füge folgendes ein (ersetze `ki-agent.deine-domain.de` mit deiner Domain):
+
+```nginx
+server {
+    listen 80;
+    server_name ki-agent.deine-domain.de;
+
+    location / {
+        proxy_pass http://localhost:80;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+Speichern: `CTRL+O`, Enter, `CTRL+X`
+
+#### 4. Nginx-Config aktivieren
+```bash
+sudo ln -s /etc/nginx/sites-available/ki-agent /etc/nginx/sites-enabled/
+sudo nginx -t  # Konfiguration testen
+sudo systemctl restart nginx
+```
+
+#### 5. KI-Agent auf anderen Port verschieben
+Da Nginx jetzt Port 80 nutzt, muss der KI-Agent auf einen anderen Port (z.B. **8460**) wechseln:
+
+```bash
+sudo nano /opt/ki-agent/config.json
+```
+
+Ändere `"port": 80` zu `"port": 8460`:
+
+```json
+{ "username": "admin", "password": "dein-passwort", "port": 8460 }
+```
+
+Nginx-Config anpassen:
+```bash
+sudo nano /etc/nginx/sites-available/ki-agent
+```
+
+Ändere `proxy_pass http://localhost:80;` zu `proxy_pass http://localhost:8460;`
+
+Neustarten:
+```bash
+sudo systemctl restart ki-agent
+sudo systemctl restart nginx
+```
+
+#### 6. SSL-Zertifikat mit Certbot (Let's Encrypt) holen
+```bash
+sudo apt install certbot python3-certbot-nginx -y
+sudo certbot --nginx -d ki-agent.deine-domain.de
+```
+
+Certbot fragt:
+- **Email**: Deine E-Mail-Adresse (für Ablauf-Warnungen)
+- **Terms of Service**: `Y` (Ja)
+- **Marketing Emails**: `N` (Nein)
+- **Redirect HTTP to HTTPS**: `2` (Ja, immer HTTPS nutzen)
+
+✅ **Fertig!** Dein KI-Agent ist jetzt über **`https://ki-agent.deine-domain.de`** mit SSL-Verschlüsselung erreichbar!
+
+#### 7. Automatische Zertifikat-Erneuerung testen
+Let's Encrypt Zertifikate laufen nach **90 Tagen** ab. Certbot richtet automatisch einen Cron-Job ein, der sie erneuert.
+
+Testen:
+```bash
+sudo certbot renew --dry-run
+```
+
+Wenn keine Fehler kommen, ist alles bereit!
+
+---
+
+### 🔧 Alternative: Cloudflare Tunnel (ohne Domain-Änderungen)
+
+Wenn du keine DNS-Änderungen vornehmen kannst, nutze **Cloudflare Tunnel**:
+
+1. Erstelle kostenloses [Cloudflare-Konto](https://dash.cloudflare.com/)
+2. Installiere `cloudflared`: [Anleitung](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/get-started/)
+3. Erstelle einen Tunnel zu `localhost:80`
+4. Cloudflare gibt dir eine `*.trycloudflare.com` URL mit automatischem HTTPS
 
 ---
 
@@ -239,19 +375,11 @@ Wenn du das Arbeitsverzeichnis auf `/` setzt, erhält die KI **vollen Root-Zugri
 - Keys werden nie im Klartext in Logs/Dateien gespeichert
 - Bei Passwort-Reset werden alle verschlüsselten Daten gelöscht
 
-### 🌐 Kein SSL/HTTPS
-Das System läuft standardmäßig auf **unverschlüsseltem HTTP**. Für Produktionsumgebungen:
-1. Installiere **Nginx** als Reverse Proxy
-2. Hole ein **Let's Encrypt SSL-Zertifikat**
-3. Leite HTTPS-Traffic zu `http://localhost:80` weiter
-
-Anleitung: [Nginx Reverse Proxy mit SSL](https://www.digitalocean.com/community/tutorials/how-to-secure-nginx-with-let-s-encrypt-on-ubuntu-22-04)
-
 ---
 
 ## 🐛 Bekannte Einschränkungen (v0.0.1 Beta)
 
-- ❌ **Kein natives SSL/HTTPS**: Nutze Nginx/Apache als Reverse Proxy
+- ⚠️ **Kein natives SSL/HTTPS**: Nutze Nginx/Apache als Reverse Proxy (siehe Anleitung oben)
 - ⚠️ **IPv6-Priorität**: Manche günstige VPS-Hoster (z.B. 24fire) haben fehlerhafte IPv4-Routing-Konfiguration. Dann ist der Server nur via IPv6 erreichbar: `http://[2a12:de40:21:4143::]`
 - 🔄 **Sessions überleben keinen RAM-Verlust**: Bei Server-Absturz (nicht bei normalem Neustart) gehen aktive Sessions verloren
 - 📝 **Große Dateien**: Context-Upload ist auf ~15KB pro Datei begrenzt (API-Token-Limit)
@@ -278,10 +406,11 @@ sudo bash /opt/ki-agent/reset.sh
 **Lösung 1** (Software-Firewall):
 ```bash
 sudo iptables -I INPUT -p tcp --dport 80 -j ACCEPT
+sudo iptables -I INPUT -p tcp --dport 443 -j ACCEPT  # Für HTTPS
 ```
 
 **Lösung 2** (Hoster-Firewall):
-Logge dich in das Kunden-Dashboard deines VPS-Anbieters ein und öffne Port 80 in der Firewall/Security Group.
+Logge dich in das Kunden-Dashboard deines VPS-Anbieters ein und öffne Port 80 (und 443 für HTTPS) in der Firewall/Security Group.
 
 **Lösung 3** (IPv6 nutzen):
 ```bash
@@ -294,8 +423,13 @@ http://[DEINE-IPV6-ADRESSE]
 
 ### KI macht Fehler / arbeitet nicht korrekt
 - **Andere API-Provider testen**: Groq, Claude, Gemini haben unterschiedliche Stärken
-- **Spezifischeres Modell wählen**: `gpt-4o` statt Auto-Auswahl
+- **Spezifischeres Modell wählen**: Wähle ein Modell aus dem Dropdown statt Auto-Auswahl
 - **Kleinere Aufgaben**: Statt "Erstelle eine komplette App" → "Erstelle erst die Login-Seite"
+
+### Modell-Dropdown lädt keine Modelle
+- **API-Key prüfen**: Ist der API-Key gültig?
+- **Provider wechseln und zurückwechseln**: Manchmal hilft ein Reload
+- **Browser-Console öffnen** (F12) und nach Fehlern suchen
 
 ---
 
