@@ -39,7 +39,6 @@
     .console-overlay { position: absolute; top: 0; right: 0; width: 350px; bottom: 0; background: #050505e6; border-left: 1px solid var(--border); padding: 10px; overflow-y: auto; font-family: monospace; font-size: 0.75rem; display: none; }
     .log-info { color: #aaa; margin-bottom: 4px; }
     
-    .ssl-hint { background: #1a3a1a; border: 1px solid var(--green); color: var(--green); padding: 8px; border-radius: 6px; font-size: 0.75rem; margin-top: 8px; line-height: 1.3; }
     .save-btn { width: 100%; background: var(--accent); color: #000; border: none; border-radius: 6px; padding: 8px; font-size: 0.8rem; font-weight: bold; cursor: pointer; margin-top: 10px; }
     .loading-text { color: var(--muted); font-size: 0.75rem; margin-top: 4px; }
   </style>
@@ -54,7 +53,7 @@
 
 <div class="layout">
   <div class="sidebar">
-    <h3 style="font-size:0.9rem; color:var(--accent); margin-bottom:10px;">1. Konfiguration</h3>
+    <h3 style="font-size:0.9rem; color:var(--accent); margin-bottom:10px;">⚙️ Konfiguration</h3>
     
     <label>Provider</label>
     <select id="provider" onchange="providerChanged()">
@@ -78,20 +77,17 @@
     </select>
     
     <button class="save-btn" onclick="saveSettings()">Einstellungen speichern</button>
-    
-    <label>Deadline (Uhrzeit)</label>
-    <input type="time" id="deadline" value="15:00">
 
-    <label>Arbeitsverzeichnis</label>
+    <label style="margin-top:20px;">Arbeitsverzeichnis</label>
     <select id="dirPreset" onchange="checkRootWarning()">
-      <option value="/var/www/html">Webserver</option>
-      <option value="/home">Home-Ordner</option>
-      <option value="/">⚠️ Root-Zugriff</option>
+      <option value="/var/www/html">Webserver (/var/www/html)</option>
+      <option value="/home">Home-Ordner (/home)</option>
+      <option value="/">⚠️ Root-Zugriff (/)</option>
     </select>
     <input type="text" id="directory" value="/var/www/html" style="margin-top:6px;">
     
     <div id="rootWarning" class="root-warning">
-      <strong>ACHTUNG!</strong> Voller Root-Zugriff.
+      <strong>ACHTUNG!</strong> Voller Root-Zugriff - die KI kann ALLES auf dem Server ändern/löschen!
     </div>
 
     <hr style="border:0; border-top:1px solid var(--border); margin: 20px 0 10px 0;">
@@ -100,16 +96,18 @@
 
   <div class="main-area">
     <div class="chat-history" id="chatHistory">
-      <div class="msg ai">Hallo! Sag mir, was ich programmieren soll.</div>
+      <div class="msg ai">Hallo! Sag mir, was ich programmieren soll.
+
+💡 Tipp: Die KI arbeitet automatisch an deiner Aufgabe und stoppt wenn sie fertig ist. Das spart API-Kosten!</div>
     </div>
     
     <div class="chat-input-area">
-      <div class="context-help">Dateien/Ordner an KI senden:</div>
+      <div class="context-help">📁 Optional: Dateien/Ordner an KI senden (spart Tokens)</div>
       <div class="context-box">
         <input type="text" id="contextPath" placeholder="z.B. /var/www/html/index.html">
       </div>
       <div class="chat-input-row">
-        <textarea id="promptInput" placeholder="z.B. 'Erstelle eine Webseite'"></textarea>
+        <textarea id="promptInput" placeholder="z.B. 'Erstelle 3 Webseiten über Anime'"></textarea>
         <button class="btn-send" onclick="sendPrompt()">Senden</button>
       </div>
     </div>
@@ -253,12 +251,11 @@
     const apiKey      = document.getElementById('apiKey').value.trim();
     const model       = document.getElementById('modelSelect').value;
     const directory   = document.getElementById('directory').value.trim();
-    const deadline    = document.getElementById('deadline').value;
     const prompt      = document.getElementById('promptInput').value.trim();
     const contextPath = document.getElementById('contextPath').value.trim();
 
     if(!prompt) return;
-    if(!apiKey && !sessionId) { alert("API Key fehlt!"); return; }
+    if(!apiKey && !sessionId) { alert("⚠️ Bitte zuerst API Key eingeben und speichern!"); return; }
 
     document.getElementById('promptInput').value = '';
     document.getElementById('contextPath').value = '';
@@ -266,7 +263,7 @@
     if(!sessionId) {
       const res = await fetch('/api/start', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider, apiKey, model, directory, prompt, deadline, contextPath })
+        body: JSON.stringify({ provider, apiKey, model, directory, prompt, contextPath })
       });
       if(res.status === 401) { alert("Session abgelaufen!"); window.location.href='/'; return; }
       const data = await res.json();
@@ -280,15 +277,17 @@
   }
 
   async function updateSystem() {
-    if(!confirm("Updates installieren?")) return;
+    if(!confirm("🔄 System jetzt updaten? Der Agent wird dabei neu gestartet.")) return;
     addLog("Suche nach Updates...");
     const res = await fetch('/api/update', { method: 'POST' });
     if(res.status === 401) { alert("Session abgelaufen!"); window.location.href='/'; return; }
     const data = await res.json();
     if(data.success) {
       addLog(`✔️ ${data.message}`);
+      alert("✔️ Update erfolgreich! Bitte Seite neu laden.");
     } else {
       addLog(`❌ ${data.error}`);
+      alert(`❌ Update fehlgeschlagen: ${data.error}`);
     }
   }
 </script>

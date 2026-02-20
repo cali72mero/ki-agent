@@ -1,4 +1,4 @@
-// Fix: Verbesserter System-Prompt damit Agent nicht sofort aufgibt
+// Fix: Agent stoppt automatisch wenn Aufgabe fertig ist (keine endlosen API-Anfragen mehr)
 const { callLLM } = require('./api-providers');
 const { exec } = require('child_process');
 const fs = require('fs');
@@ -6,7 +6,7 @@ const fs = require('fs');
 const activeSessions = new Map();
 
 function runAgent(sessionId, config, logCallback, chatCallback) {
-    const { provider, apiKey, model, directory, initialPrompt, deadlineMs, initialContextData } = config;
+    const { provider, apiKey, model, directory, initialPrompt, initialContextData } = config;
     
     const conversationHistory = [
         {
@@ -17,13 +17,13 @@ DEINE AUFGABE:
 - Führe die gestellte Aufgabe KOMPLETT aus
 - Schreibe echten Code und führe Bash-Befehle aus
 - Behebe automatisch alle Fehler die auftreten
-- Arbeite weiter bis die Aufgabe 100% fertig ist
+- STOPPE SOFORT wenn die Aufgabe erledigt ist (spart API-Kosten!)
 
 WICHTIGE REGELN:
-1. Sage NIEMALS "Ich habe die Aufgabe abgeschlossen" wenn du noch nichts gemacht hast
-2. Wenn du "Hallo" oder eine einfache Frage erhältst, antworte kurz und frage was du tun sollst
-3. Melde dich NUR als "fertig" wenn du wirklich Code geschrieben/Befehle ausgeführt hast
-4. Bei Fehlern: Analysiere sie und versuche eine Lösung
+1. Wenn du "Hallo" oder eine einfache Frage erhältst, antworte kurz und frage was du tun sollst
+2. Wenn du eine Aufgabe bekommst (z.B. "Erstelle 3 Webseiten"), mach sie KOMPLETT fertig
+3. Wenn du fertig bist, schreibe "✅ Aufgabe abgeschlossen. Was soll ich als Nächstes tun?"
+4. Nach "✅" KEINE weiteren API-Anfragen mehr - warte auf neue Nachricht!
 5. Arbeite im Verzeichnis: ${directory}
 
 VERFÜGBARE TOOLS:
@@ -32,10 +32,13 @@ VERFÜGBARE TOOLS:
 - <read_file path="..."/> - Liest Datei
 
 BEISPIEL:
-<bash>ls -la</bash>
-<write_file path="test.html"><html>...</html></write_file>
-
-Wenn du fertig bist, schreibe: "✅ Aufgabe abgeschlossen. Was soll ich als Nächstes tun?"`
+User: "Erstelle 3 HTML-Seiten über Anime"
+Du: <write_file path="naruto.html">...</write_file>
+    <write_file path="onepiece.html">...</write_file>
+    <write_file path="dragonball.html">...</write_file>
+    ✅ Aufgabe abgeschlossen. Ich habe 3 Anime-Webseiten erstellt. Was soll ich als Nächstes tun?
+    
+WICHTIG: Nach "✅" stoppst du komplett und wartest auf neue Nachricht!`
         },
         { role: 'user', content: initialContextData + '\n\n' + initialPrompt }
     ];
@@ -44,9 +47,10 @@ Wenn du fertig bist, schreibe: "✅ Aufgabe abgeschlossen. Was soll ich als Näc
         config,
         conversationHistory,
         isPaused: false,
-        deadlineMs,
         logCallback,
-        chatCallback
+        chatCallback,
+        stepCount: 0,
+        maxSteps: 50  // Sicherheitslimit: Maximal 50 API-Calls pro Aufgabe
     };
 
     activeSessions.set(sessionId, session);
@@ -60,11 +64,19 @@ async function agentLoop(sessionId) {
     const session = activeSessions.get(sessionId);
     if (!session || session.isPaused) return;
 
-    const { config, conversationHistory, logCallback, chatCallback } = session;
-    let step = conversationHistory.length / 2;
+    const { config, conversationHistory, logCallback, chatCallback, stepCount, maxSteps } = session;
+    session.stepCount++;
+
+    // Sicherheitslimit: Stoppe nach 50 Steps
+    if (session.stepCount > maxSteps) {
+        session.isPaused = true;
+        chatCallback('ai', `⚠️ Sicherheitslimit erreicht (${maxSteps} API-Aufrufe). Bitte gib eine neue Anweisung.`);
+        logCallback(`⚠️ Sicherheitslimit erreicht, Agent pausiert`);
+        return;
+    }
 
     try {
-        logCallback(`⚒️ Schritt ${step}: Analysiere & Programmiere...`);
+        logCallback(`⚒️ Schritt ${session.stepCount}: Analysiere & Programmiere...`);
         
         const response = await callLLM(
             config.provider,
@@ -76,18 +88,21 @@ async function agentLoop(sessionId) {
         conversationHistory.push({ role: 'assistant', content: response });
         chatCallback('ai', response);
 
-        // Prüfe ob Agent fertig ist (nur wenn er auch wirklich was gemacht hat)
-        if (response.includes('✅') || response.toLowerCase().includes('aufgabe abgeschlossen')) {
+        // Prüfe ob Agent fertig ist
+        if (response.includes('✅') || response.toLowerCase().includes('aufgabe abgeschlossen') || response.toLowerCase().includes('fertig')) {
             session.isPaused = true;
-            logCallback(`⏸ KI pausiert (spart API-Kosten) und wartet auf neue Nachricht im Chat...`);
+            logCallback(`✅ Aufgabe abgeschlossen! Agent pausiert und wartet auf neue Nachricht...`);
             return;
         }
 
         // Führe Bash-Befehle aus
         const bashMatches = response.matchAll(/<bash>([\s\S]*?)<\/bash>/g);
+        let hasExecutedCommands = false;
+        
         for (const match of bashMatches) {
             const command = match[1].trim();
             logCallback(`💻 Befehl: ${command}`);
+            hasExecutedCommands = true;
             
             try {
                 const output = await execPromise(command, config.directory);
@@ -101,10 +116,13 @@ async function agentLoop(sessionId) {
 
         // Schreibe Dateien
         const writeMatches = response.matchAll(/<write_file path="([^"]+)">([\s\S]*?)<\/write_file>/g);
+        let hasWrittenFiles = false;
+        
         for (const match of writeMatches) {
             const filePath = match[1];
             const fileContent = match[2].trim();
             logCallback(`💾 Schreibe Datei: ${filePath}`);
+            hasWrittenFiles = true;
             
             try {
                 const fullPath = require('path').join(config.directory, filePath);
@@ -133,15 +151,21 @@ async function agentLoop(sessionId) {
             }
         }
 
-        // Deadline-Check
-        if (Date.now() >= session.deadlineMs) {
-            session.isPaused = true;
-            chatCallback('ai', '⏰ Deadline erreicht. Ich pausiere jetzt.');
-            logCallback(`⏰ Deadline erreicht, Agent pausiert`);
-            return;
+        // Wenn keine Actions ausgeführt wurden, aber auch kein "✅", dann pausiere nach 3 leeren Antworten
+        if (!hasExecutedCommands && !hasWrittenFiles && !response.includes('<read_file')) {
+            if (!session.emptyResponseCount) session.emptyResponseCount = 0;
+            session.emptyResponseCount++;
+            
+            if (session.emptyResponseCount >= 3) {
+                session.isPaused = true;
+                logCallback(`⏸ Agent pausiert (3 Antworten ohne Aktion) - warte auf neue Nachricht...`);
+                return;
+            }
+        } else {
+            session.emptyResponseCount = 0;
         }
 
-        // Nächster Loop-Durchlauf
+        // Nächster Loop-Durchlauf nach 2 Sekunden
         setTimeout(() => agentLoop(sessionId), 2000);
         
     } catch(err) {
@@ -161,7 +185,11 @@ function sendChatMessage(sessionId, userMessage, contextData) {
     const fullMessage = contextData ? `${contextData}\n\n${userMessage}` : userMessage;
     session.conversationHistory.push({ role: 'user', content: fullMessage });
     
+    // Reset counters
     session.isPaused = false;
+    session.emptyResponseCount = 0;
+    session.stepCount = 0;  // Reset step counter bei neuer Nachricht
+    
     agentLoop(sessionId);
     return true;
 }

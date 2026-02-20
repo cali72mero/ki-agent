@@ -1,4 +1,4 @@
-// Fix: Besseres Error-Handling für /api/user/settings
+// Fix: Deadline-System komplett entfernt
 const express    = require('express');
 const bodyParser = require('body-parser');
 const http       = require('http');
@@ -56,7 +56,7 @@ function createServer() {
         try {
             fs.writeFileSync(USER_SETTINGS_FILE, JSON.stringify(userSettings, null, 2));
         } catch(e) { console.error('Fehler beim Speichern von User-Settings:', e.message); }
-    }
+        }
     loadUserSettings();
 
     let chatHistory = {};
@@ -239,7 +239,6 @@ function createServer() {
             
             if (!userSettings[username]) userSettings[username] = {};
             
-            // Nur speichern wenn Werte vorhanden sind
             if (apiKey !== undefined && apiKey !== '') {
                 userSettings[username].apiKey = encrypt(apiKey);
             }
@@ -288,22 +287,14 @@ function createServer() {
     });
 
     app.post('/api/start', checkSession, (req, res) => {
-        const { provider, apiKey, directory, prompt, contextPath, deadline, model } = req.body;
-        
-        let deadlineMs = Date.now() + 8 * 60 * 60 * 1000;
-        if(deadline) {
-            const [h, m] = deadline.split(':').map(Number);
-            const t = new Date(); t.setHours(h, m, 0, 0);
-            if(t <= new Date()) t.setDate(t.getDate() + 1);
-            deadlineMs = t.getTime();
-        }
+        const { provider, apiKey, directory, prompt, contextPath, model } = req.body;
 
         const initialContextData = readContextData(contextPath);
         const sessionId = uuidv4().substring(0, 8).toUpperCase();
 
         runAgent(
             sessionId,
-            { provider, apiKey, model, directory, initialPrompt: prompt, deadlineMs, initialContextData },
+            { provider, apiKey, model, directory, initialPrompt: prompt, initialContextData },
             (msg) => broadcastLog(sessionId, msg),
             (sender, msg) => broadcastChat(sessionId, sender, msg)
         );
