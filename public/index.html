@@ -46,7 +46,7 @@
 <body>
 
 <header>
-  <h1>&#129302; KI-Agent</h1>
+  <h1>&#129302; KI-Agent v0.0.1 Beta</h1>
   <button onclick="toggleConsole()" style="margin-left:auto; background:#222; color:#fff; border:1px solid #444; border-radius:4px; padding:4px 10px; cursor:pointer; font-size:0.8rem;">Terminal ein/ausblenden</button>
 </header>
 
@@ -56,7 +56,17 @@
     <h3 style="font-size:0.9rem; color:var(--accent); margin-bottom:10px;">1. Konfiguration</h3>
     
     <label>Provider & API Key</label>
-    <select id="provider" style="margin-bottom:6px;"><option value="groq">Groq (Sehr schnell)</option><option value="openai">OpenAI (GPT-4o)</option><option value="claude">Claude</option></select>
+    <select id="provider" style="margin-bottom:6px;">
+      <option value="groq">Groq (Sehr schnell & kostenlos)</option>
+      <option value="openai">OpenAI (GPT-4o)</option>
+      <option value="claude">Anthropic Claude</option>
+      <option value="gemini">Google Gemini</option>
+      <option value="mistral">Mistral AI</option>
+      <option value="xai">xAI (Grok)</option>
+      <option value="deepseek">DeepSeek</option>
+      <option value="cohere">Cohere</option>
+      <option value="openrouter">OpenRouter (Alle Modelle)</option>
+    </select>
     <input type="password" id="apiKey" placeholder="API Key eingeben...">
     
     <label>Deadline (Uhrzeit)</label>
