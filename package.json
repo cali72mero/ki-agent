@@ -1,7 +1,7 @@
 {
   "name": "ki-agent",
-  "version": "1.1.0",
-  "description": "Pers\u00f6nlicher KI-Agent mit echtem Chat-Interface, autonomen Bash-Kommandos und intelligentem Standby zum API-Kosten sparen.",
+  "version": "0.0.1-beta",
+  "description": "Persönlicher KI-Agent mit echtem Chat-Interface, autonomen Bash-Kommandos und intelligentem Standby zum API-Kosten sparen.",
   "main": "agent.js",
   "scripts": {
     "start": "node agent.js",
