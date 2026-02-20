@@ -1,4 +1,4 @@
-// Fix: Agent schreibt Code in Dateien (nicht im Chat zeigen!)
+// Fix: Agent MUSS write_file Tags nutzen - strengerer System-Prompt
 const { callLLM } = require('./api-providers');
 const { exec } = require('child_process');
 const fs = require('fs');
@@ -17,103 +17,134 @@ function runAgent(sessionId, config, logCallback, chatCallback) {
     const conversationHistory = [
         {
             role: 'system',
-            content: `Du bist ein vollautomatischer Coding-Agent wie OpenClaw/Cursor.
+            content: `Du bist ein Coding-Agent der wie OpenClaw/Cursor funktioniert.
 
 ARBEITSVERZEICHNIS: ${directory}
 WEBSEITEN-ORDNER: ${webDirectory}
 
-WICHTIGE REGEL:
-- Schreibe Code IMMER mit <write_file> in Dateien
-- Zeige NIEMALS Code im Chat
-- Im Chat nur kurze Zusammenfassung: "Datei erstellt: index.html"
+⚠️ KRITISCHE REGEL:
+Du MUSST IMMER die <write_file> Tags nutzen um Dateien zu erstellen!
+NIEMALS nur sagen "Datei erstellt" ohne das <write_file> Tag zu verwenden!
 
-TOOLS:
-<write_file path="...">KOMPLETTER CODE HIER</write_file>
-<read_file path="..."/>
+FALSCH ❌:
+"Ich erstelle jetzt die Datei maintenance.py"
+✅ Fertig! Datei erstellt: maintenance.py
+
+RICHTIG ✅:
+<write_file path="/root/maintenance.py">import flask
+app = flask.Flask(__name__)
+
+@app.route('/')
+def home():
+    return "Wartung!"
+
+if __name__ == '__main__':
+    app.run()</write_file>
+✅ Fertig! Datei erstellt: maintenance.py
+
+TOOLS DIE DU NUTZEN MUSST:
+<write_file path="VOLLER_PFAD">KOMPLETTER CODE</write_file>
+<read_file path="PFAD"/>
 <bash>command</bash>
 
-BEISPIELE:
+BEISPIEL 1 - Flask App erstellen:
+User: "Erstelle Flask App mit Wartungsseite in /root"
 
-❌ FALSCH (Code im Chat zeigen):
-User: "Erstelle index.html"
-Du: "Hier ist der Code:
-\`\`\`html
-<!DOCTYPE html>...
-\`\`\`"
+Du MUSST antworten:
+<write_file path="/root/maintenance.py">from flask import Flask, render_template
 
-✅ RICHTIG (Code in Datei schreiben):
+app = Flask(__name__)
+
+@app.route('/')
+def maintenance():
+    return '''<!DOCTYPE html>
+<html>
+<head>
+    <title>Wartung</title>
+    <style>
+        body {
+            font-family: Arial;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            margin: 0;
+        }
+        .container {
+            text-align: center;
+            color: white;
+            padding: 40px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+        h1 { font-size: 3rem; margin-bottom: 20px; }
+        p { font-size: 1.2rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛠️ Wartungsarbeiten</h1>
+        <p>Wir sind bald zurück!</p>
+    </div>
+</body>
+</html>'''
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
+</write_file>
+✅ Fertig! Datei erstellt: /root/maintenance.py
+
+BEISPIEL 2 - HTML Webseite:
 User: "Erstelle index.html"
-Du: <write_file path="${webDirectory === '/var/www/html' ? '/var/www/html/index.html' : 'index.html'}"><!DOCTYPE html>
+
+Du MUSST antworten:
+<write_file path="${webDirectory}/index.html"><!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meine Webseite</title>
+    <title>Meine Seite</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: 'Segoe UI', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea, #764ba2);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
+            margin: 0;
             color: white;
         }
         .container {
             text-align: center;
-            padding: 40px;
+            padding: 50px;
             background: rgba(255,255,255,0.1);
             backdrop-filter: blur(10px);
             border-radius: 20px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
         }
-        h1 { font-size: 3rem; margin-bottom: 20px; }
-        p { font-size: 1.2rem; opacity: 0.9; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Willkommen!</h1>
-        <p>Das ist meine moderne Webseite.</p>
     </div>
 </body>
 </html></write_file>
 ✅ Fertig! Datei erstellt: index.html
 
-BEISPIEL 2 - Mehrere Dateien:
-User: "Erstelle eine Webseite mit index.html und style.css"
-Du: <write_file path="${webDirectory === '/var/www/html' ? '/var/www/html/index.html' : 'index.html'}"><!DOCTYPE html>
-<html>
-<head>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-    <h1>Hallo Welt</h1>
-</body>
-</html></write_file>
-<write_file path="${webDirectory === '/var/www/html' ? '/var/www/html/style.css' : 'style.css'}">body {
-    font-family: Arial;
-    background: #1a1a1a;
-    color: white;
-    padding: 50px;
-}
-h1 {
-    color: #00d4ff;
-}</write_file>
-✅ Fertig! Dateien erstellt: index.html, style.css
+PFAD-REGELN:
+- Python/Shell-Scripts mit vollem Pfad: /root/datei.py
+- HTML/CSS/JS: ${webDirectory}/datei.html
+- Bei User-Pfad: Nutze den exakten Pfad
 
-SPEICHERORTE:
-- .html/.css/.js/.php → ${webDirectory}
-- .py/.sh → ${directory === '/' ? '/root/' : directory}
-- Bei explizitem Pfad → nutze diesen
-
-REGELN:
-1. Schreibe IMMER vollständigen, funktionierenden Code
-2. NIEMALS Code im Chat zeigen (nur Dateinamen)
-3. Nutze moderne, schöne Designs
-4. Nach Dateien erstellen: "✅ Fertig! Dateien: ..."
-5. Bei Fehlern: Korrigiere automatisch`
+WICHTIG:
+1. IMMER vollständigen, funktionierenden Code schreiben
+2. NIEMALS nur "Ich erstelle..." ohne <write_file> Tag
+3. Moderne, schöne Designs nutzen
+4. Im Chat keine Code-Blöcke zeigen (nur "Datei erstellt")
+5. Nach Dateien: "✅ Fertig! Datei erstellt: DATEINAME"`
         },
         { role: 'user', content: initialContextData + '\n\n' + initialPrompt }
     ];
@@ -131,9 +162,9 @@ REGELN:
     };
 
     activeSessions.set(sessionId, session);
-    logCallback(`🚀 Agent gestartet im Verzeichnis: ${directory}`);
+    logCallback(`🚀 Agent gestartet: ${directory}`);
     if (directory === '/') {
-        logCallback(`🌐 Webseiten werden in ${webDirectory} gespeichert`);
+        logCallback(`🌐 Webseiten: ${webDirectory}`);
     }
     
     agentLoop(sessionId);
@@ -148,13 +179,13 @@ async function agentLoop(sessionId) {
 
     if (session.stepCount > session.maxSteps) {
         session.isPaused = true;
-        chatCallback('ai', `⚠️ Limit von ${session.maxSteps} Schritten erreicht. Bitte neue Anweisung geben.`);
-        logCallback(`⚠️ Limit erreicht`);
+        chatCallback('ai', `⚠️ Limit erreicht. Neue Anweisung nötig.`);
+        logCallback(`⚠️ Limit`);
         return;
     }
 
     try {
-        logCallback(`⚒️ Schritt ${session.stepCount}`);
+        logCallback(`⚒️ Step ${session.stepCount}`);
         
         const response = await callLLM(
             config.provider,
@@ -165,16 +196,11 @@ async function agentLoop(sessionId) {
 
         conversationHistory.push({ role: 'assistant', content: response });
         
-        // Entferne Code-Blöcke aus Chat-Anzeige (nur Zusammenfassung zeigen)
+        // Entferne Code-Tags aus Chat-Anzeige
         let chatMessage = response;
-        
-        // Entferne <write_file> Tags aus Chat-Anzeige
         chatMessage = chatMessage.replace(/<write_file[^>]*>[\s\S]*?<\/write_file>/g, '');
-        // Entferne <bash> Tags aus Chat-Anzeige
         chatMessage = chatMessage.replace(/<bash>[\s\S]*?<\/bash>/g, '');
-        // Entferne <read_file> Tags
         chatMessage = chatMessage.replace(/<read_file[^>]*\/>/g, '');
-        // Entferne Code-Blöcke
         chatMessage = chatMessage.replace(/```[\s\S]*?```/g, '');
         
         chatMessage = chatMessage.trim();
@@ -188,7 +214,7 @@ async function agentLoop(sessionId) {
         
         if (isDone) {
             session.isPaused = true;
-            logCallback(`✅ Fertig!`);
+            logCallback(`✅ Fertig`);
             return;
         }
 
@@ -218,6 +244,7 @@ async function agentLoop(sessionId) {
             let filePath = match[1];
             const fileContent = match[2].trim();
             
+            // Nur relative Pfade anpassen, absolute Pfade beibehalten
             if (!filePath.startsWith('/')) {
                 if (config.directory === '/') {
                     const ext = path.extname(filePath).toLowerCase();
@@ -237,15 +264,15 @@ async function agentLoop(sessionId) {
                 const dir = path.dirname(filePath);
                 if (!fs.existsSync(dir)) {
                     fs.mkdirSync(dir, { recursive: true });
-                    logCallback(`📁 Verzeichnis: ${dir}`);
+                    logCallback(`📁 Dir: ${dir}`);
                 }
                 
                 fs.writeFileSync(filePath, fileContent, 'utf8');
-                logCallback(`✅ Erstellt: ${path.basename(filePath)}`);
-                conversationHistory.push({ role: 'user', content: `${filePath} wurde erstellt` });
+                logCallback(`✅ ${path.basename(filePath)}`);
+                conversationHistory.push({ role: 'user', content: `${filePath} wurde erfolgreich erstellt` });
             } catch(err) {
                 logCallback(`❌ ${err.message}`);
-                conversationHistory.push({ role: 'user', content: `Fehler bei ${filePath}: ${err.message}` });
+                conversationHistory.push({ role: 'user', content: `FEHLER beim Erstellen von ${filePath}: ${err.message}. Bitte korrigiere den Pfad oder die Dateirechte.` });
             }
         }
 
@@ -259,15 +286,27 @@ async function agentLoop(sessionId) {
                 filePath = path.join(config.directory, filePath);
             }
             
-            logCallback(`📄 Lese: ${filePath}`);
+            logCallback(`📄 ${filePath}`);
             
             try {
                 const content = fs.readFileSync(filePath, 'utf8');
                 conversationHistory.push({ role: 'user', content: `Inhalt von ${filePath}:\n${content.substring(0, 2000)}` });
             } catch(err) {
                 logCallback(`❌ ${err.message}`);
-                conversationHistory.push({ role: 'user', content: `Fehler: ${err.message}` });
+                conversationHistory.push({ role: 'user', content: `Fehler beim Lesen: ${err.message}` });
             }
+        }
+
+        // Wenn Agent sagt "Fertig" aber keine Dateien erstellt hat
+        if (isDone && !hasActions && session.stepCount > 1) {
+            session.isPaused = false; // NICHT pausieren
+            conversationHistory.push({ 
+                role: 'user', 
+                content: 'FEHLER: Du hast gesagt "Fertig" aber keine Dateien erstellt! Du MUSST die <write_file> Tags nutzen um Dateien zu erstellen. Versuche es nochmal und nutze diesmal die Tags!' 
+            });
+            logCallback(`⚠️ Keine Dateien erstellt - fordere Korrektur an`);
+            setTimeout(() => agentLoop(sessionId), 1000);
+            return;
         }
 
         if (!hasActions && !isDone) {
@@ -277,7 +316,7 @@ async function agentLoop(sessionId) {
             if (session.emptyResponseCount >= 3) {
                 session.isPaused = true;
                 logCallback(`⏸ Pausiert`);
-                chatCallback('ai', '⏸ Bitte klarere Anweisung geben.');
+                chatCallback('ai', '⏸ Klarere Anweisung nötig.');
                 return;
             }
         } else {
@@ -287,9 +326,9 @@ async function agentLoop(sessionId) {
         setTimeout(() => agentLoop(sessionId), 2000);
         
     } catch(err) {
-        logCallback(`❌ API-Fehler: ${err.message}`);
+        logCallback(`❌ API: ${err.message}`);
         session.isPaused = true;
-        chatCallback('ai', `❌ Fehler: ${err.message}`);
+        chatCallback('ai', `❌ ${err.message}`);
     }
 }
 
@@ -297,7 +336,7 @@ function sendChatMessage(sessionId, userMessage, contextData) {
     const session = activeSessions.get(sessionId);
     if (!session) return false;
 
-    session.logCallback(`▶️ Neue Nachricht`);
+    session.logCallback(`▶️ Nachricht`);
     
     const fullMessage = contextData ? `${contextData}\n\n${userMessage}` : userMessage;
     session.conversationHistory.push({ role: 'user', content: fullMessage });
@@ -314,7 +353,7 @@ function stopAgent(sessionId) {
     const session = activeSessions.get(sessionId);
     if (session) {
         session.isPaused = true;
-        session.logCallback(`⏹ Gestoppt`);
+        session.logCallback(`⏹ Stop`);
     }
     activeSessions.delete(sessionId);
 }
