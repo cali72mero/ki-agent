@@ -333,16 +333,8 @@ sudo systemctl restart ki-agent
 
 ## 📊 Roadmap / TODO
 
-- [ ] **Docker-Support** - Container erstellen/verwalten
-- [ ] **Multi-User** - Mehrere Accounts
-- [ ] **Rollen-System** - Admin/User/Read-Only
-- [ ] **Chat-Export** - Markdown/JSON Download
-- [ ] **Datei-Upload** - Direkt im Chat
-- [ ] **Code-Preview** - Syntax-Highlighting
-- [ ] **Git-Integration** - Commits/Push direkt
-- [ ] **Webhook-Support** - GitHub Actions
-- [ ] **Plugins** - Erweiterbare Funktionen
-- [ ] **Mobile-App** - iOS/Android
+- [ ] **Datei-Upload** - Dateien vom Computer hochladen (Server-Dateien können bereits gesendet werden)
+- [ ] **Plugins** - Erweiterbare Funktionen die von der Community entwickelt werden können
 
 ---
 
