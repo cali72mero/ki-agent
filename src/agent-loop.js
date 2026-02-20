@@ -1,4 +1,4 @@
-// Fix: Nachricht nur 1x senden (nicht bei jedem Loop!)
+// Fix: Wie OpenClaw - stoppt sofort nach Dateien!
 const { callLLM } = require('./api-providers');
 const { exec } = require('child_process');
 const fs = require('fs');
@@ -92,9 +92,8 @@ REGELN:
 1. Nutze <bash> für ALLE Befehle
 2. Python-Dateien: /root/datei.py
 3. HTML/CSS/JS: ${webDirectory}/datei.html
-4. Im Chat KEINE Code-Blöcke (nur "Fertig")
-5. Schreibe vollständigen Code
-6. Bei Fehlern: Korrigiere automatisch`
+4. Schreibe vollständigen Code
+5. Nach Befehlen: Sage "Fertig!"`
         },
         { role: 'user', content: initialContextData + '\n\n' + initialPrompt }
     ];
@@ -158,8 +157,6 @@ async function agentLoop(sessionId) {
         
         chatMessage = chatMessage.trim();
         
-        // WICHTIG: Sende Nachricht NUR EINMAL!
-        // Nicht bei jedem Korrektur-Loop wiederholen
         if (chatMessage && chatMessage !== session.lastChatMessage) {
             chatCallback('ai', chatMessage);
             session.lastChatMessage = chatMessage;
@@ -170,6 +167,7 @@ async function agentLoop(sessionId) {
                        response.toLowerCase().includes('abgeschlossen');
 
         let hasActions = false;
+        let filesCreated = 0;
 
         const bashMatches = [...response.matchAll(/<bash>([\s\S]*?)<\/bash>/g)];
         for (const match of bashMatches) {
@@ -184,7 +182,6 @@ async function agentLoop(sessionId) {
                     role: 'user', 
                     content: `❌ FEHLER: Befehl blockiert (benötigt Root-Rechte):\n${command}\n\nDieser Befehl ist gefährlich und benötigt Root-Modus. Im Normal-Modus kannst du nur Dateien erstellen/lesen/schreiben.` 
                 });
-                // Zeige Fehler nur 1x
                 if (session.lastChatMessage !== '❌ Befehl blockiert - benötigt Root-Rechte') {
                     chatCallback('ai', '❌ Befehl blockiert - benötigt Root-Rechte');
                     session.lastChatMessage = '❌ Befehl blockiert - benötigt Root-Rechte';
@@ -207,7 +204,7 @@ async function agentLoop(sessionId) {
                 const output = await execPromise(command, config.directory);
                 
                 if (isFileCreation) {
-                    session.filesCreatedThisRound++;
+                    filesCreated++;
                     const fileMatch = command.match(/cat\s*>\s*([^\s<]+)/);
                     if (fileMatch) {
                         const fileName = path.basename(fileMatch[1]);
@@ -229,7 +226,14 @@ async function agentLoop(sessionId) {
             }
         }
 
-        // AUTO-KORREKTUR
+        // WIE OPENCLAW: Stoppe SOFORT wenn Dateien erstellt wurden!
+        if (filesCreated > 0) {
+            session.isPaused = true;
+            logCallback(`✅ Fertig (${filesCreated} Datei${filesCreated > 1 ? 'en' : ''})`);
+            return;
+        }
+
+        // AUTO-KORREKTUR: Nur wenn NICHTS gemacht wurde
         if (isDone && !hasActions) {
             if (!session.correctionAttempts) session.correctionAttempts = 0;
             session.correctionAttempts++;
@@ -237,7 +241,6 @@ async function agentLoop(sessionId) {
             if (session.correctionAttempts > 2) {
                 session.isPaused = true;
                 logCallback(`❌ Abgebrochen`);
-                // Fehlermeldung nur 1x
                 if (session.lastChatMessage !== '❌ Model versteht Aufgabe nicht') {
                     chatCallback('ai', '❌ Model versteht Aufgabe nicht. Nutze stärkeres Model (z.B. llama-3.3-70b-versatile).');
                     session.lastChatMessage = '❌ Model versteht Aufgabe nicht';
@@ -251,7 +254,6 @@ async function agentLoop(sessionId) {
                 content: `❌ DU HAST KEINE BEFEHLE AUSGEFÜHRT!\n\nNutze <bash> Tags:\n<bash>cat > /root/datei.py << 'EOF'\nCODE\nEOF\n</bash>\n\nVersuche es NOCHMAL!` 
             });
             logCallback(`⚠️ Korrektur ${session.correctionAttempts}/2`);
-            // KEIN chatCallback hier! Sonst wird Korrektur-Nachricht angezeigt
             setTimeout(() => agentLoop(sessionId), 1000);
             return;
         }
@@ -260,6 +262,7 @@ async function agentLoop(sessionId) {
             session.correctionAttempts = 0;
         }
         
+        // Normale "Fertig" Nachricht
         if (isDone) {
             session.isPaused = true;
             logCallback(`✅ Fertig`);
@@ -326,7 +329,7 @@ function sendChatMessage(sessionId, userMessage, contextData) {
     session.emptyResponseCount = 0;
     session.stepCount = 0;
     session.correctionAttempts = 0;
-    session.lastChatMessage = null; // Reset bei neuer User-Nachricht
+    session.lastChatMessage = null;
     
     agentLoop(sessionId);
     return true;
