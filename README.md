@@ -1,4 +1,4 @@
-# 🤖 KI-Agent – Dein persönlicher Server-Agent
+# 🤖 KI-Agent – Dein persönlicher Server-Agent Beta bitte noch nicht benutzen
 
 Ein autonomer KI-Agent mit echtem Chat-Interface, der direkt auf deinem Linux-Server läuft und Aufgaben selbstständig erledigt. Er kann programmieren, Fehler beheben und auf Rückfragen im Chat reagieren.
 
