@@ -1,5 +1,5 @@
 #!/bin/bash
-# Update-Script für den KI-Agent
+# Zwanghaftes Update-Script für den KI-Agent
 set -e
 
 if [ "$EUID" -ne 0 ]; then 
@@ -7,31 +7,18 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
-echo "Suche nach Updates auf GitHub..."
+echo "Lade Updates von GitHub herunter..."
 cd /opt/ki-agent || exit
 
-# Hole neueste Infos von GitHub
-git fetch origin main
+# Stellt sicher, dass das lokale Repo genau dem Remote-Repo entspricht
+git fetch --all
+git reset --hard origin/main
+git clean -fd
 
-LOCAL=$(git rev-parse HEAD)
-REMOTE=$(git rev-parse origin/main)
+echo "Abhängigkeiten aktualisieren falls nötig..."
+npm install --production --silent
 
-if [ "$LOCAL" = "$REMOTE" ]; then
-    echo "Das System ist bereits auf dem neuesten Stand!"
-else
-    echo "Updates gefunden. Installiere neue Version..."
-    # Überschreibt die Code-Dateien mit der neuesten Version von GitHub.
-    # WICHTIG: config.json (wo Passwort & Port liegen) ist nicht in Git getrackt
-    # und bleibt daher automatisch unangetastet!
-    git reset --hard origin/main
-    
-    # Abhängigkeiten aktualisieren falls nötig
-    npm install --production --silent
-    
-    echo "Update erfolgreich! Starte Service neu..."
-    # Wir starten den Dienst asynchron neu, damit API-Requests (wenn über Web-UI aufgerufen)
-    # noch eine saubere Antwort an den Browser senden können.
-    nohup bash -c "sleep 2; systemctl restart ki-agent" > /dev/null 2>&1 &
-    
-    echo "Neustart eingeleitet. Der Agent ist in 3 Sekunden wieder erreichbar."
-fi
+echo "Update erfolgreich! Starte Service neu..."
+nohup bash -c "sleep 2; systemctl restart ki-agent" > /dev/null 2>&1 &
+
+echo "Neustart eingeleitet. Der Agent ist in 3 Sekunden wieder erreichbar."
