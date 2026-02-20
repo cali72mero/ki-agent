@@ -1,4 +1,4 @@
-// Update: Verbessertes Error-Handling für Login
+// Update: API-Endpoint für Modell-Abruf hinzugefügt
 const express    = require('express');
 const bodyParser = require('body-parser');
 const http       = require('http');
@@ -10,6 +10,7 @@ const { exec }   = require('child_process');
 const { v4: uuidv4 } = require('uuid');
 const { getConfig, saveConfig }  = require('./config');
 const { runAgent, sendChatMessage, stopAgent } = require('./agent-loop');
+const { getAvailableModels } = require('./api-providers');
 
 const SESSIONS_FILE = path.join(__dirname, '..', 'data', 'sessions.json');
 const USER_SETTINGS_FILE = path.join(__dirname, '..', 'data', 'user-settings.json');
@@ -23,11 +24,9 @@ function createServer() {
     app.use(bodyParser.json());
     app.use(bodyParser.urlencoded({ extended: true }));
 
-    // Data-Ordner erstellen falls nicht vorhanden
     const dataDir = path.join(__dirname, '..', 'data');
     if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
-    // Sessions persistent laden/speichern
     let activeSessions = new Map();
     function loadSessions() {
         if (fs.existsSync(SESSIONS_FILE)) {
@@ -45,7 +44,6 @@ function createServer() {
     }
     loadSessions();
 
-    // User-Einstellungen laden/speichern
     let userSettings = {};
     function loadUserSettings() {
         if (fs.existsSync(USER_SETTINGS_FILE)) {
@@ -61,7 +59,6 @@ function createServer() {
     }
     loadUserSettings();
 
-    // Chat-Verlauf laden/speichern
     let chatHistory = {};
     function loadChatHistory() {
         if (fs.existsSync(CHAT_HISTORY_FILE)) {
@@ -77,7 +74,6 @@ function createServer() {
     }
     loadChatHistory();
 
-    // Verschlüsselung
     function getEncryptionKey() {
         try {
             return crypto.createHash('sha256').update(getConfig().password || 'default').digest();
@@ -220,6 +216,21 @@ function createServer() {
         }
         res.setHeader('Set-Cookie', 'session=; HttpOnly; Path=/; Max-Age=0');
         res.json({ success: true });
+    });
+
+    // NEUER ENDPOINT: Verfügbare Modelle abrufen
+    app.post('/api/models', checkSession, async (req, res) => {
+        try {
+            const { provider, apiKey } = req.body;
+            if (!provider || !apiKey) {
+                return res.status(400).json({ error: 'Provider und API Key erforderlich' });
+            }
+            const models = await getAvailableModels(provider, apiKey);
+            res.json({ models });
+        } catch(e) {
+            console.error('Fehler beim Abrufen der Modelle:', e.message);
+            res.status(500).json({ error: e.message });
+        }
     });
 
     app.post('/api/user/settings', checkSession, (req, res) => {
