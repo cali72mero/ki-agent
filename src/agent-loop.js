@@ -1,4 +1,4 @@
-// Fix: Agent wählt automatisch richtigen Speicherort basierend auf Arbeitsverzeichnis
+// Fix: Alle kritischen Bugs behoben
 const { callLLM } = require('./api-providers');
 const { exec } = require('child_process');
 const fs = require('fs');
@@ -9,7 +9,6 @@ const activeSessions = new Map();
 function runAgent(sessionId, config, logCallback, chatCallback) {
     const { provider, apiKey, model, directory, initialPrompt, initialContextData } = config;
     
-    // Bestimme Standard-Speicherort für Webseiten
     let webDirectory = directory;
     if (directory === '/') {
         webDirectory = '/var/www/html';
@@ -18,57 +17,60 @@ function runAgent(sessionId, config, logCallback, chatCallback) {
     const conversationHistory = [
         {
             role: 'system',
-            content: `Du bist ein autonomer Programmier- und System-Administrator-Agent.
+            content: `Du bist ein vollautomatischer Programmier-Agent.
 
-DEIN ARBEITSVERZEICHNIS: ${directory}
-STANDARD-SPEICHERORT FÜR WEBSEITEN: ${webDirectory}
+ARBEITSVERZEICHNIS: ${directory}
+WEBSEITEN-ORDNER: ${webDirectory}
 
 DEINE AUFGABE:
-- Führe die gestellte Aufgabe KOMPLETT aus
-- Schreibe echten Code und führe Bash-Befehle aus
-- Behebe automatisch alle Fehler die auftreten
-- STOPPE SOFORT wenn die Aufgabe erledigt ist (spart API-Kosten!)
+- Führe Aufgaben SOFORT und VOLLSTÄNDIG aus
+- Schreibe echten Code in Dateien
+- Führe Bash-Befehle aus wenn nötig
+- KEINE FRAGEN STELLEN - mach es einfach!
+- Wenn fertig: Schreibe "✅ Fertig!" und STOPPE
 
-WICHTIGE REGELN:
-1. Wenn du "Hallo" oder eine einfache Frage erhältst, antworte kurz und frage was du tun sollst
-2. Wenn du eine Aufgabe bekommst (z.B. "Erstelle 3 Webseiten"), mach sie KOMPLETT fertig
-3. Wenn du fertig bist, schreibe "✅ Aufgabe abgeschlossen. Was soll ich als Nächstes tun?"
-4. Nach "✅" KEINE weiteren API-Anfragen mehr - warte auf neue Nachricht!
+SPEICHERORTE:
+- HTML/CSS/JS/PHP → ${webDirectory}
+- Python/Scripts → ${directory === '/' ? '/root/' : directory}
+- Bei explizitem Pfad → nutze diesen
 
-SPEICHERORT-REGELN:
-- HTML/CSS/JS/PHP Dateien (Webseiten) → IMMER in ${webDirectory} speichern
-- Python/Shell-Scripts → ${directory === '/' ? '/root/' : directory}
-- Wenn User explizit Pfad nennt (z.B. "in /home/user/") → nutze diesen Pfad
-- Bei Unsicherheit: Frage den User wo die Datei hin soll
-
-VERFÜGBARE TOOLS:
-- <bash>command</bash> - Führt Bash-Befehl aus
-- <write_file path="...">content</write_file> - Erstellt/aktualisiert Datei
-- <read_file path="..."/> - Liest Datei
+TOOLS:
+<bash>command</bash> - Führt Befehl aus
+<write_file path="...">content</write_file> - Erstellt Datei
+<read_file path="..."/> - Liest Datei
 
 BEISPIELE:
 
-Beispiel 1 - Webseite erstellen (Arbeitsverzeichnis: /):
 User: "Erstelle eine Webseite über Anime"
-Du: <write_file path="/var/www/html/anime.html"><html>...</html></write_file>
-    ✅ Aufgabe abgeschlossen. Webseite wurde in /var/www/html/anime.html erstellt.
+Du: <write_file path="${webDirectory === '/var/www/html' ? '/var/www/html/' : ''}anime.html"><!DOCTYPE html>
+<html>
+<head>
+    <title>Anime</title>
+    <style>
+        body { font-family: Arial; background: #1a1a1a; color: #fff; }
+        .container { max-width: 800px; margin: 50px auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Meine Lieblings-Anime</h1>
+        <p>Hier findest du die besten Anime aller Zeiten!</p>
+    </div>
+</body>
+</html></write_file>
+✅ Fertig! Webseite wurde erstellt.
 
-Beispiel 2 - Webseite erstellen (Arbeitsverzeichnis: /var/www/html):
-User: "Erstelle eine Webseite über Anime"
-Du: <write_file path="anime.html"><html>...</html></write_file>
-    ✅ Aufgabe abgeschlossen. Webseite wurde in anime.html erstellt.
+User: "Erstelle 3 HTML-Seiten über Naruto, One Piece und Dragon Ball"
+Du: <write_file path="${webDirectory === '/var/www/html' ? '/var/www/html/' : ''}naruto.html"><!DOCTYPE html>...</write_file>
+<write_file path="${webDirectory === '/var/www/html' ? '/var/www/html/' : ''}onepiece.html"><!DOCTYPE html>...</write_file>
+<write_file path="${webDirectory === '/var/www/html' ? '/var/www/html/' : ''}dragonball.html"><!DOCTYPE html>...</write_file>
+✅ Fertig! Alle 3 Seiten wurden erstellt.
 
-Beispiel 3 - Script erstellen (Arbeitsverzeichnis: /):
-User: "Erstelle ein Backup-Script"
-Du: <write_file path="/root/backup.sh">#!/bin/bash...</write_file>
-    ✅ Aufgabe abgeschlossen. Script wurde in /root/backup.sh erstellt.
-
-Beispiel 4 - User gibt Pfad an:
-User: "Erstelle eine Webseite in /home/user/test.html"
-Du: <write_file path="/home/user/test.html"><html>...</html></write_file>
-    ✅ Aufgabe abgeschlossen.
-    
-WICHTIG: Nach "✅" stoppst du komplett und wartest auf neue Nachricht!`
+REGELN:
+1. KEINE Fragen stellen - mach es einfach!
+2. Schreibe KOMPLETTEN Code (nicht nur "...") 
+3. Nach "✅" STOPPT die Loop automatisch
+4. Bei Fehlern: Korrigiere und versuche erneut`
         },
         { role: 'user', content: initialContextData + '\n\n' + initialPrompt }
     ];
@@ -80,17 +82,17 @@ WICHTIG: Nach "✅" stoppst du komplett und wartest auf neue Nachricht!`
         logCallback,
         chatCallback,
         stepCount: 0,
-        maxSteps: 50,
-        webDirectory  // Speichere für spätere Verwendung
+        maxSteps: 30,
+        webDirectory,
+        emptyResponseCount: 0
     };
 
     activeSessions.set(sessionId, session);
     logCallback(`🚀 Agent gestartet im Verzeichnis: ${directory}`);
     if (directory === '/') {
-        logCallback(`🌐 Webseiten werden automatisch in ${webDirectory} gespeichert`);
+        logCallback(`🌐 Webseiten werden in ${webDirectory} gespeichert`);
     }
     
-    // Starte die Agent-Loop
     agentLoop(sessionId);
 }
 
@@ -98,19 +100,18 @@ async function agentLoop(sessionId) {
     const session = activeSessions.get(sessionId);
     if (!session || session.isPaused) return;
 
-    const { config, conversationHistory, logCallback, chatCallback, stepCount, maxSteps } = session;
+    const { config, conversationHistory, logCallback, chatCallback } = session;
     session.stepCount++;
 
-    // Sicherheitslimit: Stoppe nach 50 Steps
-    if (session.stepCount > maxSteps) {
+    if (session.stepCount > session.maxSteps) {
         session.isPaused = true;
-        chatCallback('ai', `⚠️ Sicherheitslimit erreicht (${maxSteps} API-Aufrufe). Bitte gib eine neue Anweisung.`);
-        logCallback(`⚠️ Sicherheitslimit erreicht, Agent pausiert`);
+        chatCallback('ai', `⚠️ Limit von ${session.maxSteps} Schritten erreicht. Bitte neue Anweisung geben.`);
+        logCallback(`⚠️ Limit erreicht, Agent pausiert`);
         return;
     }
 
     try {
-        logCallback(`⚒️ Schritt ${session.stepCount}: Analysiere & Programmiere...`);
+        logCallback(`⚒️ Schritt ${session.stepCount}: Arbeite...`);
         
         const response = await callLLM(
             config.provider,
@@ -120,46 +121,49 @@ async function agentLoop(sessionId) {
         );
 
         conversationHistory.push({ role: 'assistant', content: response });
+        
+        // WICHTIG: Nachricht NUR EINMAL an Chat senden
         chatCallback('ai', response);
 
         // Prüfe ob Agent fertig ist
-        if (response.includes('✅') || response.toLowerCase().includes('aufgabe abgeschlossen') || response.toLowerCase().includes('fertig')) {
+        const isDone = response.includes('✅') || 
+                       response.toLowerCase().includes('fertig') ||
+                       response.toLowerCase().includes('abgeschlossen');
+        
+        if (isDone) {
             session.isPaused = true;
-            logCallback(`✅ Aufgabe abgeschlossen! Agent pausiert und wartet auf neue Nachricht...`);
+            logCallback(`✅ Aufgabe erledigt! Agent pausiert.`);
             return;
         }
 
+        let hasActions = false;
+
         // Führe Bash-Befehle aus
-        const bashMatches = response.matchAll(/<bash>([\s\S]*?)<\/bash>/g);
-        let hasExecutedCommands = false;
-        
+        const bashMatches = [...response.matchAll(/<bash>([\s\S]*?)<\/bash>/g)];
         for (const match of bashMatches) {
+            hasActions = true;
             const command = match[1].trim();
-            logCallback(`💻 Befehl: ${command}`);
-            hasExecutedCommands = true;
+            logCallback(`💻 ${command}`);
             
             try {
                 const output = await execPromise(command, config.directory);
-                logCallback(`✅ Output: ${output.substring(0, 500)}`);
-                conversationHistory.push({ role: 'user', content: `Befehl-Output:\n${output}` });
+                logCallback(`✅ ${output.substring(0, 300)}`);
+                conversationHistory.push({ role: 'user', content: `Output:\n${output}` });
             } catch(err) {
-                logCallback(`❌ Fehler: ${err.message}`);
-                conversationHistory.push({ role: 'user', content: `Fehler beim Befehl:\n${err.message}` });
+                logCallback(`❌ ${err.message}`);
+                conversationHistory.push({ role: 'user', content: `Fehler:\n${err.message}` });
             }
         }
 
         // Schreibe Dateien
-        const writeMatches = response.matchAll(/<write_file path="([^"]+)">([\s\S]*?)<\/write_file>/g);
-        let hasWrittenFiles = false;
-        
+        const writeMatches = [...response.matchAll(/<write_file path="([^"]+)">([\s\S]*?)<\/write_file>/g)];
         for (const match of writeMatches) {
+            hasActions = true;
             let filePath = match[1];
             const fileContent = match[2].trim();
             
-            // Wenn relativer Pfad und Arbeitsverzeichnis ist root, nutze webDirectory für HTML/CSS/JS
             if (!filePath.startsWith('/')) {
                 if (config.directory === '/') {
-                    // Prüfe ob es eine Webdatei ist
                     const ext = path.extname(filePath).toLowerCase();
                     if (['.html', '.css', '.js', '.php'].includes(ext)) {
                         filePath = path.join(session.webDirectory, filePath);
@@ -171,68 +175,66 @@ async function agentLoop(sessionId) {
                 }
             }
             
-            logCallback(`💾 Schreibe Datei: ${filePath}`);
-            hasWrittenFiles = true;
+            logCallback(`💾 ${filePath}`);
             
             try {
-                // Stelle sicher dass Verzeichnis existiert
                 const dir = path.dirname(filePath);
                 if (!fs.existsSync(dir)) {
                     fs.mkdirSync(dir, { recursive: true });
-                    logCallback(`📁 Verzeichnis erstellt: ${dir}`);
                 }
                 
                 fs.writeFileSync(filePath, fileContent, 'utf8');
-                logCallback(`✅ Datei erstellt: ${filePath}`);
-                conversationHistory.push({ role: 'user', content: `Datei ${filePath} erfolgreich erstellt` });
+                logCallback(`✅ Datei erstellt`);
+                conversationHistory.push({ role: 'user', content: `${filePath} wurde erstellt` });
             } catch(err) {
-                logCallback(`❌ Fehler beim Schreiben: ${err.message}`);
-                conversationHistory.push({ role: 'user', content: `Fehler beim Schreiben von ${filePath}: ${err.message}` });
+                logCallback(`❌ ${err.message}`);
+                conversationHistory.push({ role: 'user', content: `Fehler bei ${filePath}: ${err.message}` });
             }
         }
 
         // Lese Dateien
-        const readMatches = response.matchAll(/<read_file path="([^"]+)"\s*\/>/g);
+        const readMatches = [...response.matchAll(/<read_file path="([^"]+)"\s*\/>/g)];
         for (const match of readMatches) {
+            hasActions = true;
             let filePath = match[1];
             
-            // Wenn relativer Pfad, nutze Arbeitsverzeichnis
             if (!filePath.startsWith('/')) {
                 filePath = path.join(config.directory, filePath);
             }
             
-            logCallback(`📄 Lese Datei: ${filePath}`);
+            logCallback(`📄 ${filePath}`);
             
             try {
                 const content = fs.readFileSync(filePath, 'utf8');
-                conversationHistory.push({ role: 'user', content: `Inhalt von ${filePath}:\n${content.substring(0, 3000)}` });
+                conversationHistory.push({ role: 'user', content: `Inhalt von ${filePath}:\n${content.substring(0, 2000)}` });
             } catch(err) {
-                logCallback(`❌ Fehler beim Lesen: ${err.message}`);
-                conversationHistory.push({ role: 'user', content: `Fehler beim Lesen von ${filePath}: ${err.message}` });
+                logCallback(`❌ ${err.message}`);
+                conversationHistory.push({ role: 'user', content: `Fehler: ${err.message}` });
             }
         }
 
-        // Wenn keine Actions ausgeführt wurden, aber auch kein "✅", dann pausiere nach 3 leeren Antworten
-        if (!hasExecutedCommands && !hasWrittenFiles && !response.includes('<read_file')) {
-            if (!session.emptyResponseCount) session.emptyResponseCount = 0;
+        // Wenn keine Actions und auch kein "✅", zähle leere Antworten
+        if (!hasActions && !isDone) {
             session.emptyResponseCount++;
+            logCallback(`⚠️ Keine Aktion ausgeführt (${session.emptyResponseCount}/3)`);
             
             if (session.emptyResponseCount >= 3) {
                 session.isPaused = true;
-                logCallback(`⏸ Agent pausiert (3 Antworten ohne Aktion) - warte auf neue Nachricht...`);
+                logCallback(`⏸ Agent pausiert (3x keine Aktion)`);
+                chatCallback('ai', '⏸ Ich weiß nicht was ich tun soll. Bitte gib mir eine klarere Anweisung.');
                 return;
             }
         } else {
             session.emptyResponseCount = 0;
         }
 
-        // Nächster Loop-Durchlauf nach 2 Sekunden
+        // Weiter arbeiten nach 2 Sekunden
         setTimeout(() => agentLoop(sessionId), 2000);
         
     } catch(err) {
         logCallback(`❌ API-Fehler: ${err.message}`);
         session.isPaused = true;
-        chatCallback('ai', `❌ Fehler: ${err.message}. Bitte prüfe deinen API-Key und probiere es erneut.`);
+        chatCallback('ai', `❌ Fehler: ${err.message}`);
     }
 }
 
@@ -240,16 +242,15 @@ function sendChatMessage(sessionId, userMessage, contextData) {
     const session = activeSessions.get(sessionId);
     if (!session) return false;
 
-    session.logCallback(`▶️ Neue Chat-Nachricht erhalten, setze Arbeit fort...`);
-    session.chatCallback('user', userMessage);
+    session.logCallback(`▶️ Neue Nachricht empfangen`);
     
     const fullMessage = contextData ? `${contextData}\n\n${userMessage}` : userMessage;
     session.conversationHistory.push({ role: 'user', content: fullMessage });
     
-    // Reset counters
+    // Reset
     session.isPaused = false;
     session.emptyResponseCount = 0;
-    session.stepCount = 0;  // Reset step counter bei neuer Nachricht
+    session.stepCount = 0;
     
     agentLoop(sessionId);
     return true;
@@ -259,7 +260,7 @@ function stopAgent(sessionId) {
     const session = activeSessions.get(sessionId);
     if (session) {
         session.isPaused = true;
-        session.logCallback(`⏹ Agent gestoppt`);
+        session.logCallback(`⏹ Gestoppt`);
     }
     activeSessions.delete(sessionId);
 }

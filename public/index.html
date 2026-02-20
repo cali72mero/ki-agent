@@ -87,7 +87,7 @@
     <input type="text" id="directory" value="/var/www/html" style="margin-top:6px;">
     
     <div id="rootWarning" class="root-warning">
-      <strong>ACHTUNG!</strong> Voller Root-Zugriff - die KI kann ALLES auf dem Server ändern/löschen!
+      <strong>ACHTUNG!</strong> Voller Root-Zugriff!
     </div>
 
     <hr style="border:0; border-top:1px solid var(--border); margin: 20px 0 10px 0;">
@@ -96,13 +96,13 @@
 
   <div class="main-area">
     <div class="chat-history" id="chatHistory">
-      <div class="msg ai">Hallo! Sag mir, was ich programmieren soll.
+      <div class="msg ai">Hallo! Sag mir was ich tun soll.
 
-💡 Tipp: Die KI arbeitet automatisch an deiner Aufgabe und stoppt wenn sie fertig ist. Das spart API-Kosten!</div>
+💡 Tipp: Ich arbeite automatisch an deiner Aufgabe und stoppe wenn fertig!</div>
     </div>
     
     <div class="chat-input-area">
-      <div class="context-help">📁 Optional: Dateien/Ordner an KI senden (spart Tokens)</div>
+      <div class="context-help">📁 Optional: Dateien/Ordner senden</div>
       <div class="context-box">
         <input type="text" id="contextPath" placeholder="z.B. /var/www/html/index.html">
       </div>
@@ -195,7 +195,7 @@
     const loading = document.getElementById('modelLoading');
     const select = document.getElementById('modelSelect');
     loading.style.display = 'inline';
-    select.innerHTML = '<option value="">Lädt Modelle...</option>';
+    select.innerHTML = '<option value="">Lädt...</option>';
 
     try {
       const res = await fetch('/api/models', {
@@ -206,7 +206,7 @@
       
       if (res.ok) {
         const data = await res.json();
-        select.innerHTML = '<option value="">Standard-Modell verwenden</option>';
+        select.innerHTML = '<option value="">Standard-Modell</option>';
         data.models.forEach(m => {
           const opt = document.createElement('option');
           opt.value = m.id;
@@ -215,10 +215,10 @@
           select.appendChild(opt);
         });
       } else {
-        select.innerHTML = '<option value="">Fehler beim Laden</option>';
+        select.innerHTML = '<option value="">Fehler</option>';
       }
     } catch(e) {
-      select.innerHTML = '<option value="">Verbindungsfehler</option>';
+      select.innerHTML = '<option value="">Fehler</option>';
     }
     loading.style.display = 'none';
   }
@@ -236,13 +236,13 @@
       });
       
       if (res.ok) {
-        alert('✔️ Einstellungen gespeichert!');
+        alert('✔️ Gespeichert!');
       } else {
         const err = await res.json();
-        alert('❌ Fehler: ' + (err.error || 'Unbekannter Fehler'));
+        alert('❌ ' + (err.error || 'Fehler'));
       }
     } catch(e) {
-      alert('❌ Verbindungsfehler: ' + e.message);
+      alert('❌ ' + e.message);
     }
   }
 
@@ -255,8 +255,11 @@
     const contextPath = document.getElementById('contextPath').value.trim();
 
     if(!prompt) return;
-    if(!apiKey && !sessionId) { alert("⚠️ Bitte zuerst API Key eingeben und speichern!"); return; }
+    if(!apiKey && !sessionId) { alert("⚠️ API Key fehlt!"); return; }
 
+    // WICHTIG: Zeige User-Nachricht SOFORT im Chat an
+    addMsg('user', prompt);
+    
     document.getElementById('promptInput').value = '';
     document.getElementById('contextPath').value = '';
 
@@ -277,17 +280,17 @@
   }
 
   async function updateSystem() {
-    if(!confirm("🔄 System jetzt updaten? Der Agent wird dabei neu gestartet.")) return;
-    addLog("Suche nach Updates...");
+    if(!confirm("🔄 Updaten?")) return;
+    addLog("Suche Updates...");
     const res = await fetch('/api/update', { method: 'POST' });
     if(res.status === 401) { alert("Session abgelaufen!"); window.location.href='/'; return; }
     const data = await res.json();
     if(data.success) {
       addLog(`✔️ ${data.message}`);
-      alert("✔️ Update erfolgreich! Bitte Seite neu laden.");
+      alert("✔️ Update erfolgreich!");
     } else {
       addLog(`❌ ${data.error}`);
-      alert(`❌ Update fehlgeschlagen: ${data.error}`);
+      alert(`❌ ${data.error}`);
     }
   }
 </script>
