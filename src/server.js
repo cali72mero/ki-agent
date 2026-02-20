@@ -1,4 +1,4 @@
-// Fix: Deadline-System komplett entfernt
+// Fix: JSON-Fehler + Error-Handling verbessert
 const express    = require('express');
 const bodyParser = require('body-parser');
 const http       = require('http');
@@ -33,14 +33,19 @@ function createServer() {
             try {
                 const data = JSON.parse(fs.readFileSync(SESSIONS_FILE, 'utf8'));
                 activeSessions = new Map(Object.entries(data));
-            } catch(e) { console.error('Fehler beim Laden von Sessions:', e.message); }
+            } catch(e) { 
+                console.error('Fehler beim Laden von Sessions:', e.message);
+                activeSessions = new Map();
+            }
         }
     }
     function saveSessions() {
         try {
             const obj = Object.fromEntries(activeSessions);
-            fs.writeFileSync(SESSIONS_FILE, JSON.stringify(obj, null, 2));
-        } catch(e) { console.error('Fehler beim Speichern von Sessions:', e.message); }
+            fs.writeFileSync(SESSIONS_FILE, JSON.stringify(obj, null, 2), 'utf8');
+        } catch(e) { 
+            console.error('Fehler beim Speichern von Sessions:', e.message);
+        }
     }
     loadSessions();
 
@@ -48,29 +53,46 @@ function createServer() {
     function loadUserSettings() {
         if (fs.existsSync(USER_SETTINGS_FILE)) {
             try {
-                userSettings = JSON.parse(fs.readFileSync(USER_SETTINGS_FILE, 'utf8'));
-            } catch(e) { console.error('Fehler beim Laden von User-Settings:', e.message); }
+                const content = fs.readFileSync(USER_SETTINGS_FILE, 'utf8');
+                if (content.trim()) {
+                    userSettings = JSON.parse(content);
+                }
+            } catch(e) { 
+                console.error('Fehler beim Laden von User-Settings:', e.message);
+                userSettings = {};
+            }
         }
     }
     function saveUserSettings() {
         try {
-            fs.writeFileSync(USER_SETTINGS_FILE, JSON.stringify(userSettings, null, 2));
-        } catch(e) { console.error('Fehler beim Speichern von User-Settings:', e.message); }
+            fs.writeFileSync(USER_SETTINGS_FILE, JSON.stringify(userSettings, null, 2), 'utf8');
+        } catch(e) { 
+            console.error('Fehler beim Speichern von User-Settings:', e.message);
+            throw e;
         }
+    }
     loadUserSettings();
 
     let chatHistory = {};
     function loadChatHistory() {
         if (fs.existsSync(CHAT_HISTORY_FILE)) {
             try {
-                chatHistory = JSON.parse(fs.readFileSync(CHAT_HISTORY_FILE, 'utf8'));
-            } catch(e) { console.error('Fehler beim Laden von Chat-History:', e.message); }
+                const content = fs.readFileSync(CHAT_HISTORY_FILE, 'utf8');
+                if (content.trim()) {
+                    chatHistory = JSON.parse(content);
+                }
+            } catch(e) { 
+                console.error('Fehler beim Laden von Chat-History:', e.message);
+                chatHistory = {};
+            }
         }
     }
     function saveChatHistory() {
         try {
-            fs.writeFileSync(CHAT_HISTORY_FILE, JSON.stringify(chatHistory, null, 2));
-        } catch(e) { console.error('Fehler beim Speichern von Chat-History:', e.message); }
+            fs.writeFileSync(CHAT_HISTORY_FILE, JSON.stringify(chatHistory, null, 2), 'utf8');
+        } catch(e) { 
+            console.error('Fehler beim Speichern von Chat-History:', e.message);
+        }
     }
     loadChatHistory();
 
@@ -84,6 +106,7 @@ function createServer() {
     
     function encrypt(text) {
         try {
+            if (!text) return '';
             const ENCRYPTION_KEY = getEncryptionKey();
             const iv = crypto.randomBytes(16);
             const cipher = crypto.createCipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
@@ -98,6 +121,7 @@ function createServer() {
     
     function decrypt(text) {
         try {
+            if (!text) return '';
             const ENCRYPTION_KEY = getEncryptionKey();
             const parts = text.split(':');
             if (parts.length !== 2) return text;
@@ -122,13 +146,25 @@ function createServer() {
 
     function broadcastLog(sessionId, message) {
         wsClients.forEach(ws => {
-            if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'log', sessionId, message }));
+            if (ws.readyState === WebSocket.OPEN) {
+                try {
+                    ws.send(JSON.stringify({ type: 'log', sessionId, message }));
+                } catch(e) {
+                    console.error('WebSocket send error:', e.message);
+                }
+            }
         });
     }
 
     function broadcastChat(sessionId, sender, message) {
         wsClients.forEach(ws => {
-            if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'chat', sessionId, sender, message }));
+            if (ws.readyState === WebSocket.OPEN) {
+                try {
+                    ws.send(JSON.stringify({ type: 'chat', sessionId, sender, message }));
+                } catch(e) {
+                    console.error('WebSocket send error:', e.message);
+                }
+            }
         });
         if (!chatHistory[sessionId]) chatHistory[sessionId] = [];
         chatHistory[sessionId].push({ sender, message, timestamp: Date.now() });
@@ -166,7 +202,10 @@ function createServer() {
                 }
                 return res;
             }
-        } catch(e) { return `Fehler: ${e.message}`; }
+        } catch(e) { 
+            console.error('Context read error:', e.message);
+            return `Fehler: ${e.message}`; 
+        }
         return '';
     }
 
@@ -197,25 +236,30 @@ function createServer() {
                 activeSessions.set(sessionToken, { username });
                 saveSessions();
                 res.setHeader('Set-Cookie', `session=${sessionToken}; HttpOnly; Path=/; Max-Age=2592000`);
-                res.json({ success: true });
+                return res.json({ success: true });
             } else {
-                res.status(401).json({ error: 'Falscher Benutzername oder Passwort' });
+                return res.status(401).json({ error: 'Falscher Benutzername oder Passwort' });
             }
         } catch(e) {
             console.error('Login-Fehler:', e.message);
-            res.status(500).json({ error: 'Server-Fehler beim Login' });
+            return res.status(500).json({ error: 'Server-Fehler' });
         }
     });
 
     app.post('/api/logout', (req, res) => {
-        const cookies = req.headers.cookie || '';
-        const sessionMatch = cookies.match(/session=([^;]+)/);
-        if (sessionMatch) {
-            activeSessions.delete(sessionMatch[1]);
-            saveSessions();
+        try {
+            const cookies = req.headers.cookie || '';
+            const sessionMatch = cookies.match(/session=([^;]+)/);
+            if (sessionMatch) {
+                activeSessions.delete(sessionMatch[1]);
+                saveSessions();
+            }
+            res.setHeader('Set-Cookie', 'session=; HttpOnly; Path=/; Max-Age=0');
+            return res.json({ success: true });
+        } catch(e) {
+            console.error('Logout-Fehler:', e.message);
+            return res.status(500).json({ error: 'Server-Fehler' });
         }
-        res.setHeader('Set-Cookie', 'session=; HttpOnly; Path=/; Max-Age=0');
-        res.json({ success: true });
     });
 
     app.post('/api/models', checkSession, async (req, res) => {
@@ -225,10 +269,10 @@ function createServer() {
                 return res.status(400).json({ error: 'Provider und API Key erforderlich' });
             }
             const models = await getAvailableModels(provider, apiKey);
-            res.json({ models });
+            return res.json({ models });
         } catch(e) {
-            console.error('Fehler beim Abrufen der Modelle:', e.message);
-            res.status(500).json({ error: e.message });
+            console.error('Modelle-Fehler:', e.message);
+            return res.status(500).json({ error: e.message });
         }
     });
 
@@ -237,7 +281,11 @@ function createServer() {
             const { apiKey, provider, model } = req.body;
             const username = req.user.username;
             
-            if (!userSettings[username]) userSettings[username] = {};
+            console.log('Speichere Settings für:', username);
+            
+            if (!userSettings[username]) {
+                userSettings[username] = {};
+            }
             
             if (apiKey !== undefined && apiKey !== '') {
                 userSettings[username].apiKey = encrypt(apiKey);
@@ -250,63 +298,95 @@ function createServer() {
             }
             
             saveUserSettings();
-            res.json({ success: true });
+            console.log('Settings gespeichert');
+            
+            return res.json({ success: true });
         } catch(e) {
-            console.error('Fehler beim Speichern der User-Settings:', e.message);
-            res.status(500).json({ error: e.message });
+            console.error('Settings-Fehler:', e.message, e.stack);
+            return res.status(500).json({ error: e.message || 'Unbekannter Fehler' });
         }
     });
 
     app.get('/api/user/settings', checkSession, (req, res) => {
-        const username = req.user.username;
-        const settings = userSettings[username] || {};
-        
-        res.json({
-            apiKey: settings.apiKey ? decrypt(settings.apiKey) : '',
-            provider: settings.provider || 'groq',
-            model: settings.model || ''
-        });
+        try {
+            const username = req.user.username;
+            const settings = userSettings[username] || {};
+            
+            return res.json({
+                apiKey: settings.apiKey ? decrypt(settings.apiKey) : '',
+                provider: settings.provider || 'groq',
+                model: settings.model || ''
+            });
+        } catch(e) {
+            console.error('Settings-Laden-Fehler:', e.message);
+            return res.status(500).json({ error: e.message });
+        }
     });
 
     app.get('/api/chat/history/:sessionId', checkSession, (req, res) => {
-        const { sessionId } = req.params;
-        res.json({ history: chatHistory[sessionId] || [] });
+        try {
+            const { sessionId } = req.params;
+            return res.json({ history: chatHistory[sessionId] || [] });
+        } catch(e) {
+            console.error('Chat-History-Fehler:', e.message);
+            return res.status(500).json({ error: e.message });
+        }
     });
 
     app.post('/api/settings/domain', checkSession, (req, res) => {
-        const { domain } = req.body;
-        const cfg = getConfig();
-        cfg.domain = domain || '';
-        saveConfig(cfg);
-        res.json({ success: true });
+        try {
+            const { domain } = req.body;
+            const cfg = getConfig();
+            cfg.domain = domain || '';
+            saveConfig(cfg);
+            return res.json({ success: true });
+        } catch(e) {
+            console.error('Domain-Fehler:', e.message);
+            return res.status(500).json({ error: e.message });
+        }
     });
 
     app.get('/api/settings/domain', checkSession, (req, res) => {
-        const cfg = getConfig();
-        res.json({ domain: cfg.domain || '' });
+        try {
+            const cfg = getConfig();
+            return res.json({ domain: cfg.domain || '' });
+        } catch(e) {
+            console.error('Domain-Laden-Fehler:', e.message);
+            return res.status(500).json({ error: e.message });
+        }
     });
 
     app.post('/api/start', checkSession, (req, res) => {
-        const { provider, apiKey, directory, prompt, contextPath, model } = req.body;
+        try {
+            const { provider, apiKey, directory, prompt, contextPath, model } = req.body;
 
-        const initialContextData = readContextData(contextPath);
-        const sessionId = uuidv4().substring(0, 8).toUpperCase();
+            const initialContextData = readContextData(contextPath);
+            const sessionId = uuidv4().substring(0, 8).toUpperCase();
 
-        runAgent(
-            sessionId,
-            { provider, apiKey, model, directory, initialPrompt: prompt, initialContextData },
-            (msg) => broadcastLog(sessionId, msg),
-            (sender, msg) => broadcastChat(sessionId, sender, msg)
-        );
+            runAgent(
+                sessionId,
+                { provider, apiKey, model, directory, initialPrompt: prompt, initialContextData },
+                (msg) => broadcastLog(sessionId, msg),
+                (sender, msg) => broadcastChat(sessionId, sender, msg)
+            );
 
-        res.json({ success: true, sessionId });
+            return res.json({ success: true, sessionId });
+        } catch(e) {
+            console.error('Start-Fehler:', e.message);
+            return res.status(500).json({ error: e.message });
+        }
     });
 
     app.post('/api/chat', checkSession, (req, res) => {
-        const { sessionId, prompt, contextPath } = req.body;
-        const ctxData = readContextData(contextPath);
-        const ok = sendChatMessage(sessionId, prompt, ctxData);
-        res.json({ success: ok });
+        try {
+            const { sessionId, prompt, contextPath } = req.body;
+            const ctxData = readContextData(contextPath);
+            const ok = sendChatMessage(sessionId, prompt, ctxData);
+            return res.json({ success: ok });
+        } catch(e) {
+            console.error('Chat-Fehler:', e.message);
+            return res.status(500).json({ error: e.message });
+        }
     });
 
     app.post('/api/update', checkSession, (req, res) => {
@@ -314,7 +394,7 @@ function createServer() {
             if (err) {
                 return res.status(500).json({ success: false, error: err.message, details: stderr });
             }
-            res.json({ success: true, message: stdout });
+            return res.json({ success: true, message: stdout });
         });
     });
 
