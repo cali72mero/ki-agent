@@ -1,4 +1,4 @@
-// Fix: Wie OpenClaw - stoppt sofort nach Dateien!
+// Fix: rm nur bei System-Pfaden blockieren!
 const { callLLM } = require('./api-providers');
 const { exec } = require('child_process');
 const fs = require('fs');
@@ -28,6 +28,7 @@ Nutze diese Rechte verantwortungsvoll!` : `
 Du kannst:
 - Dateien erstellen/lesen/schreiben
 - Programme im User-Verzeichnis ausführen
+- Dateien löschen (rm)
 
 Du kannst NICHT:
 - System-Updates (apt update/upgrade)
@@ -296,6 +297,7 @@ async function agentLoop(sessionId) {
 }
 
 function checkDangerousCommand(cmd) {
+    // NUR System-kritische Befehle blockieren!
     const dangerous = [
         'apt install', 'apt-get install',
         'apt update', 'apt-get update',
@@ -303,7 +305,10 @@ function checkDangerousCommand(cmd) {
         'apt remove', 'apt-get remove',
         'systemctl', 'service ',
         'reboot', 'shutdown',
+        // NUR rm mit System-Pfaden blockieren!
         'rm -rf /', 'rm -rf /etc', 'rm -rf /var', 'rm -rf /usr', 'rm -rf /boot',
+        'rm -rf /sys', 'rm -rf /proc', 'rm -rf /dev',
+        'rm -r /', 'rm -r /etc', 'rm -r /var', 'rm -r /usr', 'rm -r /boot',
         'dd if=', 
         'mkfs.', 'fdisk', 'parted',
         'iptables', 'ufw ',
