@@ -14,40 +14,66 @@
     input { width: 100%; background: #111; border: 1px solid var(--border); border-radius: 8px; color: #fff; padding: 12px; font-size: 0.95rem; }
     button { width: 100%; background: var(--accent); color: #000; border: none; border-radius: 8px; padding: 14px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 24px; }
     button:hover { opacity: 0.9; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
     .error { color: var(--red); font-size: 0.85rem; margin-top: 12px; text-align: center; display: none; }
   </style>
 </head>
 <body>
   <div class="login-box">
     <h1>🤖 KI-Agent Login</h1>
-    <form onsubmit="login(event)">
+    <form onsubmit="login(event)" id="loginForm">
       <label>Benutzername</label>
-      <input type="text" id="username" required autofocus>
+      <input type="text" id="username" required autofocus autocomplete="username">
       
       <label>Passwort</label>
-      <input type="password" id="password" required>
+      <input type="password" id="password" required autocomplete="current-password">
       
-      <button type="submit">Anmelden</button>
+      <button type="submit" id="loginBtn">Anmelden</button>
       <div class="error" id="error">Falscher Benutzername oder Passwort</div>
     </form>
   </div>
 
   <script>
+    let isSubmitting = false;
+    
     async function login(e) {
       e.preventDefault();
-      const username = document.getElementById('username').value;
+      
+      if (isSubmitting) return;
+      isSubmitting = true;
+      
+      const btn = document.getElementById('loginBtn');
+      const errorDiv = document.getElementById('error');
+      btn.disabled = true;
+      btn.innerText = 'Anmelden...';
+      errorDiv.style.display = 'none';
+      
+      const username = document.getElementById('username').value.trim();
       const password = document.getElementById('password').value;
       
-      const res = await fetch('/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-      });
-      
-      if (res.ok) {
-        window.location.href = '/';
-      } else {
-        document.getElementById('error').style.display = 'block';
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        
+        if (res.ok) {
+          window.location.href = '/';
+        } else {
+          const data = await res.json().catch(() => ({ error: 'Unbekannter Fehler' }));
+          errorDiv.innerText = data.error || 'Login fehlgeschlagen';
+          errorDiv.style.display = 'block';
+          btn.disabled = false;
+          btn.innerText = 'Anmelden';
+          isSubmitting = false;
+        }
+      } catch(err) {
+        errorDiv.innerText = 'Verbindung zum Server fehlgeschlagen';
+        errorDiv.style.display = 'block';
+        btn.disabled = false;
+        btn.innerText = 'Anmelden';
+        isSubmitting = false;
       }
     }
   </script>

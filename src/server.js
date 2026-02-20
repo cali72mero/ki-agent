@@ -1,4 +1,4 @@
-// Update: Persistente Sessions & verschlüsselte API-Key-Speicherung
+// Update: Verbessertes Error-Handling für Login
 const express    = require('express');
 const bodyParser = require('body-parser');
 const http       = require('http');
@@ -25,7 +25,7 @@ function createServer() {
 
     // Data-Ordner erstellen falls nicht vorhanden
     const dataDir = path.join(__dirname, '..', 'data');
-    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir);
+    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
     // Sessions persistent laden/speichern
     let activeSessions = new Map();
@@ -34,26 +34,30 @@ function createServer() {
             try {
                 const data = JSON.parse(fs.readFileSync(SESSIONS_FILE, 'utf8'));
                 activeSessions = new Map(Object.entries(data));
-            } catch(e) {}
+            } catch(e) { console.error('Fehler beim Laden von Sessions:', e.message); }
         }
     }
     function saveSessions() {
-        const obj = Object.fromEntries(activeSessions);
-        fs.writeFileSync(SESSIONS_FILE, JSON.stringify(obj, null, 2));
+        try {
+            const obj = Object.fromEntries(activeSessions);
+            fs.writeFileSync(SESSIONS_FILE, JSON.stringify(obj, null, 2));
+        } catch(e) { console.error('Fehler beim Speichern von Sessions:', e.message); }
     }
     loadSessions();
 
-    // User-Einstellungen (API Keys, Modelle) laden/speichern
+    // User-Einstellungen laden/speichern
     let userSettings = {};
     function loadUserSettings() {
         if (fs.existsSync(USER_SETTINGS_FILE)) {
             try {
                 userSettings = JSON.parse(fs.readFileSync(USER_SETTINGS_FILE, 'utf8'));
-            } catch(e) {}
+            } catch(e) { console.error('Fehler beim Laden von User-Settings:', e.message); }
         }
     }
     function saveUserSettings() {
-        fs.writeFileSync(USER_SETTINGS_FILE, JSON.stringify(userSettings, null, 2));
+        try {
+            fs.writeFileSync(USER_SETTINGS_FILE, JSON.stringify(userSettings, null, 2));
+        } catch(e) { console.error('Fehler beim Speichern von User-Settings:', e.message); }
     }
     loadUserSettings();
 
@@ -63,31 +67,54 @@ function createServer() {
         if (fs.existsSync(CHAT_HISTORY_FILE)) {
             try {
                 chatHistory = JSON.parse(fs.readFileSync(CHAT_HISTORY_FILE, 'utf8'));
-            } catch(e) {}
+            } catch(e) { console.error('Fehler beim Laden von Chat-History:', e.message); }
         }
     }
     function saveChatHistory() {
-        fs.writeFileSync(CHAT_HISTORY_FILE, JSON.stringify(chatHistory, null, 2));
+        try {
+            fs.writeFileSync(CHAT_HISTORY_FILE, JSON.stringify(chatHistory, null, 2));
+        } catch(e) { console.error('Fehler beim Speichern von Chat-History:', e.message); }
     }
     loadChatHistory();
 
-    // Verschlüsselung (simpel, kann später durch echtes KMS ersetzt werden)
-    const ENCRYPTION_KEY = crypto.createHash('sha256').update(getConfig().password).digest();
-    function encrypt(text) {
-        const iv = crypto.randomBytes(16);
-        const cipher = crypto.createCipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
-        let encrypted = cipher.update(text, 'utf8', 'hex');
-        encrypted += cipher.final('hex');
-        return iv.toString('hex') + ':' + encrypted;
+    // Verschlüsselung
+    function getEncryptionKey() {
+        try {
+            return crypto.createHash('sha256').update(getConfig().password || 'default').digest();
+        } catch(e) {
+            return crypto.createHash('sha256').update('default').digest();
+        }
     }
+    
+    function encrypt(text) {
+        try {
+            const ENCRYPTION_KEY = getEncryptionKey();
+            const iv = crypto.randomBytes(16);
+            const cipher = crypto.createCipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
+            let encrypted = cipher.update(text, 'utf8', 'hex');
+            encrypted += cipher.final('hex');
+            return iv.toString('hex') + ':' + encrypted;
+        } catch(e) {
+            console.error('Verschlüsselungsfehler:', e.message);
+            return text;
+        }
+    }
+    
     function decrypt(text) {
-        const parts = text.split(':');
-        const iv = Buffer.from(parts[0], 'hex');
-        const encrypted = parts[1];
-        const decipher = crypto.createDecipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
-        let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-        decrypted += decipher.final('utf8');
-        return decrypted;
+        try {
+            const ENCRYPTION_KEY = getEncryptionKey();
+            const parts = text.split(':');
+            if (parts.length !== 2) return text;
+            const iv = Buffer.from(parts[0], 'hex');
+            const encrypted = parts[1];
+            const decipher = crypto.createDecipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
+            let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+            decrypted += decipher.final('utf8');
+            return decrypted;
+        } catch(e) {
+            console.error('Entschlüsselungsfehler:', e.message);
+            return text;
+        }
     }
 
     const wsClients = new Map();
@@ -107,7 +134,6 @@ function createServer() {
         wsClients.forEach(ws => {
             if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'chat', sessionId, sender, message }));
         });
-        // Chat-Verlauf speichern
         if (!chatHistory[sessionId]) chatHistory[sessionId] = [];
         chatHistory[sessionId].push({ sender, message, timestamp: Date.now() });
         saveChatHistory();
@@ -122,7 +148,7 @@ function createServer() {
             req.user = activeSessions.get(sessionToken);
             return next();
         }
-        res.status(401).json({ error: 'Nicht eingeloggt. Bitte anmelden.' });
+        res.status(401).json({ error: 'Nicht eingeloggt' });
     }
 
     function readContextData(cPath) {
@@ -144,7 +170,7 @@ function createServer() {
                 }
                 return res;
             }
-        } catch(e) { return `Fehler beim Lesen: ${e.message}`; }
+        } catch(e) { return `Fehler: ${e.message}`; }
         return '';
     }
 
@@ -161,17 +187,27 @@ function createServer() {
     app.use('/assets', express.static(path.join(__dirname, '..', 'public', 'assets')));
 
     app.post('/api/login', (req, res) => {
-        const { username, password } = req.body;
-        const cfg = getConfig();
-
-        if (username === cfg.username && password === cfg.password) {
-            const sessionToken = uuidv4();
-            activeSessions.set(sessionToken, { username });
-            saveSessions();
-            res.setHeader('Set-Cookie', `session=${sessionToken}; HttpOnly; Path=/; Max-Age=2592000`);
-            res.json({ success: true });
-        } else {
-            res.status(401).json({ error: 'Falscher Benutzername oder Passwort' });
+        try {
+            const { username, password } = req.body;
+            
+            if (!username || !password) {
+                return res.status(400).json({ error: 'Benutzername und Passwort erforderlich' });
+            }
+            
+            const cfg = getConfig();
+            
+            if (username === cfg.username && password === cfg.password) {
+                const sessionToken = uuidv4();
+                activeSessions.set(sessionToken, { username });
+                saveSessions();
+                res.setHeader('Set-Cookie', `session=${sessionToken}; HttpOnly; Path=/; Max-Age=2592000`);
+                res.json({ success: true });
+            } else {
+                res.status(401).json({ error: 'Falscher Benutzername oder Passwort' });
+            }
+        } catch(e) {
+            console.error('Login-Fehler:', e.message);
+            res.status(500).json({ error: 'Server-Fehler beim Login' });
         }
     });
 
@@ -186,7 +222,6 @@ function createServer() {
         res.json({ success: true });
     });
 
-    // User-Einstellungen speichern (API Key, Modell)
     app.post('/api/user/settings', checkSession, (req, res) => {
         const { apiKey, provider, model } = req.body;
         const username = req.user.username;
@@ -194,13 +229,12 @@ function createServer() {
         if (!userSettings[username]) userSettings[username] = {};
         if (apiKey) userSettings[username].apiKey = encrypt(apiKey);
         if (provider) userSettings[username].provider = provider;
-        if (model) userSettings[username].model = model;
+        if (model !== undefined) userSettings[username].model = model;
         
         saveUserSettings();
         res.json({ success: true });
     });
 
-    // User-Einstellungen laden
     app.get('/api/user/settings', checkSession, (req, res) => {
         const username = req.user.username;
         const settings = userSettings[username] || {};
@@ -212,7 +246,6 @@ function createServer() {
         });
     });
 
-    // Chat-Verlauf laden
     app.get('/api/chat/history/:sessionId', checkSession, (req, res) => {
         const { sessionId } = req.params;
         res.json({ history: chatHistory[sessionId] || [] });
