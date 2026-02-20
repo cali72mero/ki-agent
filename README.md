@@ -1,450 +1,381 @@
-# 🤖 KI-Agent v0.0.1 Beta
+# 🤖 KI-Agent v0.1 Beta
 
-**Dein persönlicher autonomer KI-Agent für Linux-Server**
+**Automatischer Coding-Agent mit Chat-Interface** - Wie OpenClaw/Cursor, aber selbst-gehostet!
 
-Ein vollautomatischer KI-Agent mit echtem Chat-Interface, der direkt auf deinem Linux-Server läuft und komplexe Programmier- und Verwaltungsaufgaben selbstständig erledigt. Die KI kann Bash-Befehle ausführen, Code schreiben, Fehler beheben und mit dir im Chat kommunizieren.
-
----
-
-## 🌟 Was kann der KI-Agent?
-
-Der KI-Agent ist wie ein virtueller Entwickler und Systemadministrator, der rund um die Uhr für dich arbeitet:
-
-### 💻 Programmierung & Entwicklung
-- **Webseiten erstellen**: Komplette HTML/CSS/JavaScript-Websites von Grund auf
-- **Backend-Entwicklung**: APIs, Datenbanken, Server-Logik in PHP, Python, Node.js
-- **Code debuggen**: Findet und behebt Fehler automatisch in bestehendem Code
-- **Code refactoren**: Verbessert vorhandenen Code (Performance, Lesbarkeit, Best Practices)
-- **Dokumentation schreiben**: Erstellt README-Dateien, Code-Kommentare, API-Docs
-- **Git-Verwaltung**: Commits, Branches, Merge-Konflikte lösen
-
-### 🖥️ Server-Administration
-- **Services installieren**: Nginx, Apache, MySQL, PostgreSQL, Redis, etc.
-- **System-Updates**: `apt update && apt upgrade` mit Fehlerbehandlung
-- **Log-Analyse**: Durchsucht und analysiert Server-Logs nach Fehlern
-- **Cron-Jobs einrichten**: Automatisierte Backups, Monitoring, Cleanup-Tasks
-- **Firewall konfigurieren**: UFW, iptables, Fail2Ban einrichten
-- **SSL/HTTPS einrichten**: Let's Encrypt Zertifikate mit Nginx/Apache
-- **Performance-Optimierung**: RAM, CPU, Disk-Usage analysieren und optimieren
-
-### 🛠️ DevOps & Automatisierung
-- **Docker-Container**: Dockerfiles schreiben, Images bauen, Container orchestrieren
-- **CI/CD-Pipelines**: GitHub Actions, GitLab CI konfigurieren
-- **Monitoring**: Prometheus, Grafana, Uptime-Checks einrichten
-- **Backup-Strategien**: Automatische Backups zu AWS S3, Hetzner Storage Box, etc.
-- **Deployment-Scripts**: Automatisierte Deployments mit Zero-Downtime
-
-### 🔒 Sicherheit & Wartung
-- **Security-Audits**: Prüft dein System auf bekannte Schwachstellen
-- **Dependency-Updates**: Aktualisiert npm, pip, composer Packages
-- **Permission-Management**: Korrigiert falsche Datei-Rechte (chmod, chown)
-- **Malware-Scan**: ClamAV Installation und automatische Scans
-
-### 📊 Datenverarbeitung
-- **Datenbank-Migration**: MySQL zu PostgreSQL, Schema-Änderungen
-- **CSV/JSON-Parsing**: Verarbeitet große Datensätze, konvertiert Formate
-- **Web-Scraping**: Extrahiert Daten von Websites (BeautifulSoup, Puppeteer)
-- **API-Integration**: Verbindet externe APIs (Stripe, Twilio, SendGrid, etc.)
+🚀 Arbeitet **vollautomatisch** an deinen Aufgaben und stoppt wenn fertig!  
+💾 Erstellt Dateien, läuft Code aus, behebt Fehler **ohne manuelles Eingreifen**  
+💬 ChatGPT-Style Interface mit **persistentem Chat-Verlauf**  
+⚡ Unterstützt **10+ AI-Provider** (Groq, OpenAI, Claude, Gemini, etc.)
 
 ---
 
 ## ✨ Features
 
-### 🔐 Sicherheit & Datenschutz
-- **Session-basiertes Login**: Persistente Login-Sessions mit HttpOnly-Cookies
-- **Verschlüsselte API-Keys**: AES-256-Verschlüsselung für gespeicherte API-Keys
-- **Multi-User-Support**: Jeder Nutzer kann eigene API-Keys & Modell-Präferenzen speichern
-- **Root-Warnung**: Visueller Warnhinweis bei Vollzugriff auf Server
+### 💬 Chat-Verwaltung (wie ChatGPT)
+- ✅ **Mehrere Chats parallel** - Speichere unbegrenzt viele Konversationen
+- ✅ **Auto-Save** - Jede Nachricht wird automatisch gespeichert
+- ✅ **Chat-Historie** - Bleibt nach Reload/Neustart erhalten
+- ✅ **Chat-Wechsel** - Klick auf Chat lädt komplette Historie
+- ✅ **Löschen** - Einzelne Chats oder alle auf einmal
+- ✅ **SQLite Datenbank** - Lokal gespeichert, keine Cloud
 
-### 💬 Chat & Kommunikation
-- **Echtes Chat-Interface**: Wie ChatGPT/WhatsApp - schreibe Anweisungen im Klartext
-- **Live-Feedback**: Sieh in Echtzeit, was die KI gerade macht (WebSocket-Logs)
-- **Context-Upload**: Sende ganze Dateien/Ordner an die KI (spart API-Tokens)
-- **Persistenter Chat-Verlauf**: Alle Konversationen werden gespeichert
+### 🤖 Autonomer Agent
+- ✅ **Vollautomatisch** - Arbeitet bis Aufgabe erledigt ist
+- ✅ **OpenClaw-Style** - Stoppt sofort nach Datei-Erstellung
+- ✅ **Selbst-korrigierend** - Behebt Fehler automatisch
+- ✅ **Smart Retry** - Probiert Alternative bei Fehlern
+- ✅ **Step-by-Step Log** - Echtzeit-Terminal zeigt jeden Schritt
+- ✅ **WebSocket** - Live-Updates ohne Reload
 
-### 🧠 Intelligentes Verhalten
-- **Autonome Fehlerkorrektur**: Wenn ein Befehl fehlschlägt, analysiert die KI den Fehler und probiert es erneut
-- **Intelligente Pause**: Stoppt API-Anfragen automatisch wenn fertig (spart Geld)
-- **Deadline-System**: Setze Zeitlimits (z.B. "Arbeite bis 15:00 Uhr")
-- **Kontext-Bewusstsein**: KI merkt sich vorherige Befehle und deren Ausgaben
+### 🔒 Sicherheit
+- ✅ **Normal-Modus** - Nur Dateien erstellen/lesen/schreiben
+- ✅ **Root-Modus** - Volle System-Kontrolle (opt-in mit Warnung)
+- ✅ **Command-Filter** - Blockiert gefährliche Befehle im Normal-Modus
+- ✅ **API-Key Verschlüsselung** - AES-256-CBC verschlüsselt
+- ✅ **Session-Management** - Sicheres Login-System
 
-### 🔧 Technische Features
-- **9 API-Provider**: Groq, OpenAI, Claude, Gemini, Mistral, xAI, DeepSeek, Cohere, OpenRouter
-- **Automatische Modell-Auswahl**: Dropdown mit allen verfügbaren Modellen deines Providers
-- **Web-basiertes Update-System**: Ein Klick genügt für Updates
-- **Persistente Datenspeicherung**: Einstellungen überleben Server-Neustarts
-- **IPv4 & IPv6 Support**: Funktioniert auf modernen VPS-Hostern
+### 🌐 Multi-Provider Support
+- ✅ **Groq** (Kostenlos! llama-3.3-70b)
+- ✅ **OpenAI** (GPT-4, GPT-4o-mini)
+- ✅ **Claude** (Claude 3.5 Sonnet)
+- ✅ **Gemini** (Gemini 1.5 Pro)
+- ✅ **Mistral AI**
+- ✅ **xAI** (Grok)
+- ✅ **DeepSeek**
+- ✅ **Cohere**
+- ✅ **OpenRouter**
+- ✅ **Auto-Model-Detection** - Lädt verfügbare Modelle automatisch
+
+### 🛠️ Entwickler-Features
+- ✅ **Kontext-Dateien** - Sende Dateien/Ordner als Kontext
+- ✅ **Arbeitsverzeichnis** - Wählbar (/var/www/html, /root, etc.)
+- ✅ **Terminal-Overlay** - Live-Logs im Browser
+- ✅ **Auto-Update** - Ein Klick System-Update
+- ✅ **Systemd Service** - Läuft im Hintergrund
 
 ---
 
-## 📦 Installation (Ubuntu / Debian)
+## 💻 Installation
+
+### Voraussetzungen
+- **Linux Server** (Ubuntu/Debian empfohlen)
+- **Node.js 16+**
+- **npm**
+- **Root-Zugriff** (für Systemd-Service)
+
+### Quick Install
 
 ```bash
+# 1. Repository klonen
 git clone https://github.com/cali72mero/ki-agent.git
 cd ki-agent
+
+# 2. Abhängigkeiten installieren
+npm install
+
+# 3. Konfiguration erstellen
+cp config.example.json config.json
+nano config.json  # Username & Passwort setzen
+
+# 4. Als Systemd-Service installieren
 sudo bash install.sh
+
+# 5. Service starten
+sudo systemctl start ki-agent
+sudo systemctl enable ki-agent
 ```
 
-Das Installations-Script fragt nach:
-1. **Benutzername** (Standard: `admin`)
-2. **Passwort** (frei wählbar)
-3. **Port** (Standard: `80`)
+### Manuelle Installation
 
-Nach der Installation läuft der Agent als systemd-Service und startet automatisch bei Server-Neustarts.
+```bash
+# Dependencies
+npm install express body-parser ws uuid node-fetch sqlite3
 
----
+# Config erstellen
+echo '{
+  "username": "admin",
+  "password": "dein-sicheres-passwort",
+  "port": 80
+}' > config.json
 
-## 🚀 Erste Schritte
+# Starten
+sudo node agent.js
+```
 
-### 1. Web-Interface öffnen
-Öffne deinen Browser und gib ein:
+### Zugriff
+
 ```
 http://DEINE-SERVER-IP
+Login: admin / dein-passwort
 ```
-*(Falls Port 80 belegt ist, nutze `http://DEINE-IP:8460` oder einen anderen Port)*
-
-### 2. Einloggen
-Verwende die Zugangsdaten, die du beim `install.sh` eingegeben hast.
-
-### 3. API-Key hinterlegen
-1. Wähle einen **Provider** (z.B. **Groq** - kostenlos & schnell)
-2. Gib deinen **API-Key** ein
-3. Das System lädt automatisch alle **verfügbaren Modelle** in einem Dropdown
-4. Wähle ein Modell oder nutze das Standard-Modell
-5. Klicke auf **"Einstellungen speichern"**
-
-Dein API-Key wird verschlüsselt gespeichert und automatisch bei jedem Login geladen.
-
-### 4. Erste Anweisung geben
-Stelle dein **Arbeitsverzeichnis** ein (z.B. `/var/www/html` für Webprojekte).
-
-Schreibe in den Chat:
-```
-Erstelle mir eine moderne Landing-Page mit HTML, CSS und JavaScript.
-Die Seite soll ein Hero-Banner, drei Feature-Boxen und ein Kontaktformular haben.
-Behebe alle Fehler und melde dich wenn du fertig bist.
-```
-
-Die KI:
-1. Erstellt alle Dateien (`index.html`, `style.css`, `script.js`)
-2. Testet den Code im Browser
-3. Behebt automatisch auftretende Fehler
-4. Meldet sich im Chat: *"✅ Ich habe die Webseite fertiggestellt. Was soll ich als Nächstes tun?"*
 
 ---
 
-## 🔐 SSL/HTTPS einrichten (WICHTIG!)
+## 🚀 Nutzung
 
-Der KI-Agent läuft standardmäßig auf **unverschlüsseltem HTTP** (Port 80). Für sichere Verbindungen in Produktionsumgebungen solltest du **HTTPS mit SSL-Zertifikat** einrichten.
+### 1️⃣ Ersten Chat erstellen
 
-### Warum SSL/HTTPS?
-- ✅ **Verschlüsselte Verbindung**: Deine Passwörter und API-Keys werden verschlüsselt übertragen
-- ✅ **Browser-Warnung vermeiden**: Keine "Nicht sicher"-Meldung im Browser
-- ✅ **Kostenlos mit Let's Encrypt**: Automatische SSL-Zertifikate ohne Kosten
+1. **➕ Neuer Chat** klicken
+2. **Provider & API-Key** eingeben (rechts)
+3. **Einstellungen speichern**
+4. **Prompt eingeben** und senden!
 
-### Schritt-für-Schritt Anleitung
+### 2️⃣ Beispiel-Prompts
 
-#### 1. Domain auf Server zeigen lassen
-Gehe zu deinem **Domain-Anbieter** (z.B. Namecheap, Cloudflare, Strato) und erstelle einen **A-Record**:
-
+**Webseite erstellen:**
 ```
-Type: A
-Name: ki-agent (oder @ für Hauptdomain)
-Value: DEINE-SERVER-IP
-TTL: 300 (oder Auto)
-```
+Erstelle 3 HTML-Seiten über Anime:
+1. index.html - Übersicht
+2. about.html - Über die Seite
+3. contact.html - Kontaktformular
 
-Warte 5-10 Minuten, bis die DNS-Änderungen weltweit verbreitet sind.
-
-**Prüfen ob Domain funktioniert:**
-```bash
-ping ki-agent.deine-domain.de
+Mit modernem CSS und Navigation.
 ```
 
-#### 2. Nginx installieren
-```bash
-sudo apt update
-sudo apt install nginx -y
+**Python-Script:**
+```
+Erstelle Python-Script das:
+1. Alle .txt Dateien im Ordner liest
+2. Nach "error" durchsucht
+3. Ergebnisse in error-report.txt speichert
 ```
 
-#### 3. Nginx Reverse Proxy konfigurieren
-Erstelle eine neue Nginx-Konfiguration:
-
-```bash
-sudo nano /etc/nginx/sites-available/ki-agent
+**Server konfigurieren (Root-Modus):**
+```
+Installiere Nginx, konfiguriere für Port 8080,
+erstelle SSL-Zertifikat und starte Service.
 ```
 
-Füge folgendes ein (ersetze `ki-agent.deine-domain.de` mit deiner Domain):
+### 3️⃣ Kontext-Dateien senden
 
-```nginx
-server {
-    listen 80;
-    server_name ki-agent.deine-domain.de;
+**Einzelne Datei:**
+```
+Kontext-Feld: /var/www/html/index.html
+Prompt: Verbessere das Design und füge Responsive Layout hinzu
+```
 
-    location / {
-        proxy_pass http://localhost:80;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
+**Ganzer Ordner:**
+```
+Kontext-Feld: /var/www/html
+Prompt: Analysiere alle HTML-Dateien und erstelle Sitemap
+```
+
+### 4️⃣ Chat-Verwaltung
+
+- **Neuer Chat**: ➕ Button oben links
+- **Chat laden**: Klick auf Chat in Liste
+- **Chat löschen**: Hover über Chat → × klicken
+- **Alle löschen**: 🗑️ Button unten links
+
+---
+
+## ✅ Was der Agent KANN
+
+### 🟢 Normal-Modus (Standard)
+- ✅ **Dateien erstellen** (HTML, CSS, JS, Python, etc.)
+- ✅ **Dateien lesen** (cat, grep, find)
+- ✅ **Dateien löschen** (rm, rm -rf im Arbeitsverzeichnis)
+- ✅ **Ordner erstellen** (mkdir)
+- ✅ **Programme ausführen** (python, node, bash-scripts)
+- ✅ **Code schreiben** (komplette Projekte)
+- ✅ **Fehler beheben** (automatische Korrektur)
+- ✅ **Dateien bearbeiten** (sed, awk)
+- ✅ **Suchen & Ersetzen** (grep, find, sed)
+
+### 🔴 Root-Modus (Erweitert)
+**Zusätzlich zu allem oben:**
+- ✅ **Pakete installieren** (apt install, npm install -g)
+- ✅ **System updaten** (apt update && apt upgrade)
+- ✅ **Services steuern** (systemctl restart/stop/start)
+- ✅ **Firewall konfigurieren** (ufw, iptables)
+- ✅ **User verwalten** (useradd, passwd)
+- ✅ **System neustarten** (reboot)
+- ✅ **Cron-Jobs** (crontab -e)
+- ✅ **Nginx/Apache konfigurieren**
+
+---
+
+## ❌ Was der Agent NICHT KANN
+
+### Im Normal-Modus:
+- ❌ System-Updates (apt update/upgrade)
+- ❌ Software installieren (apt install)
+- ❌ Services steuern (systemctl)
+- ❌ System neustarten (reboot)
+- ❌ Kritische System-Dateien löschen (/etc, /var, /usr)
+- ❌ Firewall ändern
+- ❌ User-Verwaltung
+
+### Generell:
+- ❌ **Keine GUI-Anwendungen** (nur Terminal-basiert)
+- ❌ **Keine Interaktion** (keine stdin-Inputs möglich)
+- ❌ **Keine Netzwerk-Scans** (aus Sicherheitsgründen)
+- ❌ **Keine Kernel-Modifikationen**
+- ❌ **Keine Docker-Container** (noch nicht implementiert)
+
+---
+
+## 🔒 Sicherheit
+
+### 🟢 Normal-Modus (Empfohlen)
+**Sicher für:**
+- Web-Entwicklung
+- Script-Erstellung
+- Datei-Management
+- Code-Generierung
+
+**Blockiert:**
+- apt install/update/upgrade
+- systemctl Befehle
+- reboot/shutdown
+- Löschen von /etc, /var, /usr, /boot
+- Kernel-Modifikationen
+
+### 🔴 Root-Modus (Vorsicht!)
+**⚠️ WARNUNG:** Gibt dem Agent **VOLLE System-Kontrolle**!
+
+**Nur nutzen wenn:**
+- Du dem Agent vertraust
+- Du weißt was du tust
+- Du den Server kontrollierst
+- Backups vorhanden sind
+
+**Risiken:**
+- Agent kann System beschädigen
+- Daten können gelöscht werden
+- Services können gestoppt werden
+- System kann neugestartet werden
+
+---
+
+## 🛠️ Konfiguration
+
+### config.json
+
+```json
+{
+  "username": "admin",
+  "password": "sicheres-passwort",
+  "port": 80,
+  "domain": "ki-agent.example.com"
 }
 ```
 
-Speichern: `CTRL+O`, Enter, `CTRL+X`
+### User-Settings (im Browser)
+- **Provider**: AI-Anbieter wählen
+- **API-Key**: Verschlüsselt gespeichert
+- **Modell**: Auto-geladen oder manuell wählen
+- **Arbeitsverzeichnis**: Standard-Ordner
+- **Root-Modus**: Ein/Aus schalten
 
-#### 4. Nginx-Config aktivieren
+---
+
+## 🐞 Troubleshooting
+
+### Chat-Liste zeigt 400 Error
 ```bash
-sudo ln -s /etc/nginx/sites-available/ki-agent /etc/nginx/sites-enabled/
-sudo nginx -t  # Konfiguration testen
-sudo systemctl restart nginx
-```
-
-#### 5. KI-Agent auf anderen Port verschieben
-Da Nginx jetzt Port 80 nutzt, muss der KI-Agent auf einen anderen Port (z.B. **8460**) wechseln:
-
-```bash
-sudo nano /opt/ki-agent/config.json
-```
-
-Ändere `"port": 80` zu `"port": 8460`:
-
-```json
-{ "username": "admin", "password": "dein-passwort", "port": 8460 }
-```
-
-Nginx-Config anpassen:
-```bash
-sudo nano /etc/nginx/sites-available/ki-agent
-```
-
-Ändere `proxy_pass http://localhost:80;` zu `proxy_pass http://localhost:8460;`
-
-Neustarten:
-```bash
+cd /opt/ki-agent
+npm install sqlite3
 sudo systemctl restart ki-agent
-sudo systemctl restart nginx
 ```
 
-#### 6. SSL-Zertifikat mit Certbot (Let's Encrypt) holen
-```bash
-sudo apt install certbot python3-certbot-nginx -y
-sudo certbot --nginx -d ki-agent.deine-domain.de
-```
+### Root-Modus funktioniert nicht
+1. Checkbox **🔴 Root-Modus aktivieren**
+2. Seite neu laden (STRG+SHIFT+R)
+3. Terminal Log prüfen: `journalctl -u ki-agent -f`
+4. Muss zeigen: `🔴 ROOT-MODUS AKTIV`
 
-Certbot fragt:
-- **Email**: Deine E-Mail-Adresse (für Ablauf-Warnungen)
-- **Terms of Service**: `Y` (Ja)
-- **Marketing Emails**: `N` (Nein)
-- **Redirect HTTP to HTTPS**: `2` (Ja, immer HTTPS nutzen)
-
-✅ **Fertig!** Dein KI-Agent ist jetzt über **`https://ki-agent.deine-domain.de`** mit SSL-Verschlüsselung erreichbar!
-
-#### 7. Automatische Zertifikat-Erneuerung testen
-Let's Encrypt Zertifikate laufen nach **90 Tagen** ab. Certbot richtet automatisch einen Cron-Job ein, der sie erneuert.
-
-Testen:
-```bash
-sudo certbot renew --dry-run
-```
-
-Wenn keine Fehler kommen, ist alles bereit!
-
----
-
-### 🔧 Alternative: Cloudflare Tunnel (ohne Domain-Änderungen)
-
-Wenn du keine DNS-Änderungen vornehmen kannst, nutze **Cloudflare Tunnel**:
-
-1. Erstelle kostenloses [Cloudflare-Konto](https://dash.cloudflare.com/)
-2. Installiere `cloudflared`: [Anleitung](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/get-started/)
-3. Erstelle einen Tunnel zu `localhost:80`
-4. Cloudflare gibt dir eine `*.trycloudflare.com` URL mit automatischem HTTPS
-
----
-
-## 📋 Beispiel-Anweisungen
-
-### Webentwicklung
-```
-Erstelle eine vollständige Blog-Website mit PHP und MySQL.
-Die Datenbank soll Posts, Kategorien und Kommentare speichern.
-Implementiere ein Admin-Panel zum Erstellen neuer Blog-Posts.
-```
-
-### Server-Verwaltung
-```
-Installiere Nginx als Reverse Proxy für Port 3000.
-Richte SSL mit Let's Encrypt ein für die Domain example.com.
-Konfiguriere automatische Zertifikat-Erneuerung.
-```
-
-### Debugging
-```
-Analysiere die Datei /var/log/nginx/error.log.
-Finde alle 502 Bad Gateway Fehler der letzten 24 Stunden.
-Behebe die Ursache und dokumentiere die Lösung.
-```
-
-### Backup & Automatisierung
-```
-Erstelle ein Bash-Script, das täglich um 3 Uhr nachts
-alle MySQL-Datenbanken sichert und zu /backup/ hochlädt.
-Richte einen Cron-Job dafür ein.
-```
-
----
-
-## 🔧 Verfügbare Befehle
-
-### Installation & Setup
-```bash
-# System installieren
-sudo bash install.sh
-
-# System aktualisieren (Terminal)
-sudo bash /opt/ki-agent/update.sh
-
-# Passwort zurücksetzen & alle Daten löschen
-sudo bash /opt/ki-agent/reset.sh
-
-# System komplett deinstallieren
-sudo bash /opt/ki-agent/uninstall.sh
-```
-
-### Service-Verwaltung
-```bash
-# Status prüfen
-sudo systemctl status ki-agent
-
-# Neustarten
-sudo systemctl restart ki-agent
-
-# Stoppen
-sudo systemctl stop ki-agent
-
-# Starten
-sudo systemctl start ki-agent
-
-# Logs anzeigen
-journalctl -u ki-agent -f
-```
-
-### Manuelle Updates (falls Web-Interface nicht funktioniert)
+### Agent stoppt nicht nach Datei-Erstellung
 ```bash
 cd /opt/ki-agent
 git pull
 sudo systemctl restart ki-agent
 ```
 
----
+### API-Key wird nicht gespeichert
+- Browser-Console öffnen (F12)
+- Fehler-Meldungen prüfen
+- Server-Logs: `journalctl -u ki-agent -n 50`
 
-## 💾 Daten-Persistenz
-
-Alle wichtigen Daten werden im `/opt/ki-agent/data/` Ordner gespeichert:
-
-| Datei | Inhalt | Wird bei Updates gelöscht? |
-|-------|--------|---------------------------|
-| `config.json` | Benutzername, Passwort, Port | ❌ Nein |
-| `data/sessions.json` | Aktive Login-Sessions | ❌ Nein |
-| `data/user-settings.json` | API-Keys (verschlüsselt), Modell-Präferenzen | ❌ Nein |
-| `data/chat-history.json` | Kompletter Chat-Verlauf | ❌ Nein |
-
-Der `/opt/ki-agent/data/` Ordner ist in `.gitignore` und wird niemals durch `git pull` überschrieben!
-
----
-
-## 🛡️ Sicherheitshinweise
-
-### ⚠️ Root-Zugriff
-Wenn du das Arbeitsverzeichnis auf `/` setzt, erhält die KI **vollen Root-Zugriff** auf deinen Server. Sie kann dann:
-- System-Updates durchführen
-- Services installieren/deinstallieren
-- Den Server neu starten oder herunterfahren
-- Beliebige Dateien löschen oder ändern
-
-**Empfehlung**: Beschränke das Arbeitsverzeichnis auf `/var/www/html` oder `/home/dein-projekt`.
-
-### 🔐 API-Key-Sicherheit
-- API-Keys werden mit AES-256-CBC verschlüsselt
-- Encryption-Key basiert auf deinem Server-Passwort
-- Keys werden nie im Klartext in Logs/Dateien gespeichert
-- Bei Passwort-Reset werden alle verschlüsselten Daten gelöscht
-
----
-
-## 🐛 Bekannte Einschränkungen (v0.0.1 Beta)
-
-- ⚠️ **Kein natives SSL/HTTPS**: Nutze Nginx/Apache als Reverse Proxy (siehe Anleitung oben)
-- ⚠️ **IPv6-Priorität**: Manche günstige VPS-Hoster haben fehlerhafte IPv4-Routing-Konfiguration. Dann ist der Server nur via IPv6 erreichbar: `http://[2a12:de40:21:4143::]`
-- 🔄 **Sessions überleben keinen RAM-Verlust**: Bei Server-Absturz (nicht bei normalem Neustart) gehen aktive Sessions verloren
-- 📝 **Große Dateien**: Context-Upload ist auf ~15KB pro Datei begrenzt (API-Token-Limit)
-
----
-
-## 🆘 Hilfe & Problemlösung
-
-### Login funktioniert nicht
+### Port 80 bereits belegt
 ```bash
-# Logs prüfen
-journalctl -u ki-agent -n 50
+# config.json ändern:
+nano /opt/ki-agent/config.json
+# "port": 8080
 
-# Service neu starten
 sudo systemctl restart ki-agent
-
-# Passwort zurücksetzen
-sudo bash /opt/ki-agent/reset.sh
 ```
 
-### Webseite lädt nicht ("lädt sich tot")
-**Ursache**: Firewall blockiert den Port.
+---
 
-**Lösung 1** (Software-Firewall):
+## 🔄 Updates
+
+### Automatisch (im Browser)
+1. **♻️ System updaten** Button klicken
+2. Wartet auf Bestätigung
+3. Service wird automatisch neugestartet
+
+### Manuell
 ```bash
-sudo iptables -I INPUT -p tcp --dport 80 -j ACCEPT
-sudo iptables -I INPUT -p tcp --dport 443 -j ACCEPT  # Für HTTPS
+cd /opt/ki-agent
+sudo bash update.sh
 ```
 
-**Lösung 2** (Hoster-Firewall):
-Logge dich in das Kunden-Dashboard deines VPS-Anbieters ein und öffne Port 80 (und 443 für HTTPS) in der Firewall/Security Group.
-
-**Lösung 3** (IPv6 nutzen):
+### Von GitHub
 ```bash
-# IPv6-Adresse herausfinden
-ip -6 addr | grep inet6 | grep -v fe80 | grep -v ::1
-
-# Im Browser öffnen (Achtung: eckige Klammern!)
-http://[DEINE-IPV6-ADRESSE]
+cd /opt/ki-agent
+git pull
+npm install
+sudo systemctl restart ki-agent
 ```
 
-### KI macht Fehler / arbeitet nicht korrekt
-- **Andere API-Provider testen**: Groq, Claude, Gemini haben unterschiedliche Stärken
-- **Spezifischeres Modell wählen**: Wähle ein Modell aus dem Dropdown statt Auto-Auswahl
-- **Kleinere Aufgaben**: Statt "Erstelle eine komplette App" → "Erstelle erst die Login-Seite"
+---
 
-### Modell-Dropdown lädt keine Modelle
-- **API-Key prüfen**: Ist der API-Key gültig?
-- **Provider wechseln und zurückwechseln**: Manchmal hilft ein Reload
-- **Browser-Console öffnen** (F12) und nach Fehlern suchen
+## 📊 Roadmap / TODO
+
+- [ ] **Docker-Support** - Container erstellen/verwalten
+- [ ] **Multi-User** - Mehrere Accounts
+- [ ] **Rollen-System** - Admin/User/Read-Only
+- [ ] **Chat-Export** - Markdown/JSON Download
+- [ ] **Datei-Upload** - Direkt im Chat
+- [ ] **Code-Preview** - Syntax-Highlighting
+- [ ] **Git-Integration** - Commits/Push direkt
+- [ ] **Webhook-Support** - GitHub Actions
+- [ ] **Plugins** - Erweiterbare Funktionen
+- [ ] **Mobile-App** - iOS/Android
 
 ---
 
-## 🤝 Support & Community
+## 📝 Lizenz
 
-- **GitHub Issues**: [github.com/cali72mero/ki-agent/issues](https://github.com/cali72mero/ki-agent/issues)
-- **Dokumentation**: Diese README-Datei
-
----
-
-## 📜 Lizenz
-
-MIT License - Du darfst das Projekt frei nutzen, modifizieren und weitergeben.
+MIT License - Siehe [LICENSE](LICENSE) Datei
 
 ---
 
-**Gebaut für einfaches Self-Hosting auf Linux-Servern.**  
-*Version 0.0.1 Beta - Made with ❤️ by cali72mero*
+## 👤 Autor
+
+**cali72mero**  
+GitHub: [@cali72mero](https://github.com/cali72mero)
+
+---
+
+## ⭐ Support
+
+Wenn dir das Projekt gefällt:
+- ⭐ **Star** auf GitHub
+- 🐛 **Issues** melden
+- 🔧 **Pull Requests** willkommen!
+
+---
+
+## 📚 Links
+
+- [GitHub Repository](https://github.com/cali72mero/ki-agent)
+- [Issues](https://github.com/cali72mero/ki-agent/issues)
+- [Releases](https://github.com/cali72mero/ki-agent/releases)
+
+---
+
+**Version:** 0.1.0-beta  
+**Letztes Update:** Februar 2026  
+**Status:** 🟡 Beta - Aktiv in Entwicklung
