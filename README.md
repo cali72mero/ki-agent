@@ -1,6 +1,6 @@
 # 🤖 KI-Agent – Persönlicher AI-Agent
 
-> Wie OpenClaw – nur einfacher zu installieren. Ein autonomer KI-Agent mit Web-Interface der direkt auf deinem Linux-Server läuft.
+Ein autonomer KI-Agent mit Web-Interface, der direkt auf deinem Linux-Server läuft und Aufgaben selbstständig erledigt.
 
 ## Features
 
@@ -86,4 +86,4 @@ ki-agent/
 
 ---
 
-Inspiriert von [OpenClaw](https://openclaw.ai) – gebaut für einfaches Self-Hosting auf Linux.
+Gebaut für einfaches Self-Hosting auf Linux-Servern (Ubuntu / Debian).
