@@ -1,0 +1,14 @@
+# Node modules
+node_modules/
+
+# User data (WICHTIG: Diese Dateien dürfen NIE auf GitHub!)
+data/
+config.json
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db

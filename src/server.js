@@ -1,14 +1,19 @@
-// Update: Session-basiertes Login-System mit Cookie-Support
+// Update: Persistente Sessions & verschlüsselte API-Key-Speicherung
 const express    = require('express');
 const bodyParser = require('body-parser');
 const http       = require('http');
 const WebSocket  = require('ws');
 const path       = require('path');
 const fs         = require('fs');
+const crypto     = require('crypto');
 const { exec }   = require('child_process');
 const { v4: uuidv4 } = require('uuid');
 const { getConfig, saveConfig }  = require('./config');
 const { runAgent, sendChatMessage, stopAgent } = require('./agent-loop');
+
+const SESSIONS_FILE = path.join(__dirname, '..', 'data', 'sessions.json');
+const USER_SETTINGS_FILE = path.join(__dirname, '..', 'data', 'user-settings.json');
+const CHAT_HISTORY_FILE = path.join(__dirname, '..', 'data', 'chat-history.json');
 
 function createServer() {
     const app    = express();
@@ -18,8 +23,72 @@ function createServer() {
     app.use(bodyParser.json());
     app.use(bodyParser.urlencoded({ extended: true }));
 
-    // Session-Speicher (im RAM, geht bei Neustart verloren - absichtlich für Sicherheit)
-    const activeSessions = new Map();
+    // Data-Ordner erstellen falls nicht vorhanden
+    const dataDir = path.join(__dirname, '..', 'data');
+    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir);
+
+    // Sessions persistent laden/speichern
+    let activeSessions = new Map();
+    function loadSessions() {
+        if (fs.existsSync(SESSIONS_FILE)) {
+            try {
+                const data = JSON.parse(fs.readFileSync(SESSIONS_FILE, 'utf8'));
+                activeSessions = new Map(Object.entries(data));
+            } catch(e) {}
+        }
+    }
+    function saveSessions() {
+        const obj = Object.fromEntries(activeSessions);
+        fs.writeFileSync(SESSIONS_FILE, JSON.stringify(obj, null, 2));
+    }
+    loadSessions();
+
+    // User-Einstellungen (API Keys, Modelle) laden/speichern
+    let userSettings = {};
+    function loadUserSettings() {
+        if (fs.existsSync(USER_SETTINGS_FILE)) {
+            try {
+                userSettings = JSON.parse(fs.readFileSync(USER_SETTINGS_FILE, 'utf8'));
+            } catch(e) {}
+        }
+    }
+    function saveUserSettings() {
+        fs.writeFileSync(USER_SETTINGS_FILE, JSON.stringify(userSettings, null, 2));
+    }
+    loadUserSettings();
+
+    // Chat-Verlauf laden/speichern
+    let chatHistory = {};
+    function loadChatHistory() {
+        if (fs.existsSync(CHAT_HISTORY_FILE)) {
+            try {
+                chatHistory = JSON.parse(fs.readFileSync(CHAT_HISTORY_FILE, 'utf8'));
+            } catch(e) {}
+        }
+    }
+    function saveChatHistory() {
+        fs.writeFileSync(CHAT_HISTORY_FILE, JSON.stringify(chatHistory, null, 2));
+    }
+    loadChatHistory();
+
+    // Verschlüsselung (simpel, kann später durch echtes KMS ersetzt werden)
+    const ENCRYPTION_KEY = crypto.createHash('sha256').update(getConfig().password).digest();
+    function encrypt(text) {
+        const iv = crypto.randomBytes(16);
+        const cipher = crypto.createCipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
+        let encrypted = cipher.update(text, 'utf8', 'hex');
+        encrypted += cipher.final('hex');
+        return iv.toString('hex') + ':' + encrypted;
+    }
+    function decrypt(text) {
+        const parts = text.split(':');
+        const iv = Buffer.from(parts[0], 'hex');
+        const encrypted = parts[1];
+        const decipher = crypto.createDecipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
+        let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+        decrypted += decipher.final('utf8');
+        return decrypted;
+    }
 
     const wsClients = new Map();
     wss.on('connection', (ws) => {
@@ -38,9 +107,12 @@ function createServer() {
         wsClients.forEach(ws => {
             if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'chat', sessionId, sender, message }));
         });
+        // Chat-Verlauf speichern
+        if (!chatHistory[sessionId]) chatHistory[sessionId] = [];
+        chatHistory[sessionId].push({ sender, message, timestamp: Date.now() });
+        saveChatHistory();
     }
 
-    // Session-Cookie prüfen
     function checkSession(req, res, next) {
         const cookies = req.headers.cookie || '';
         const sessionMatch = cookies.match(/session=([^;]+)/);
@@ -76,23 +148,18 @@ function createServer() {
         return '';
     }
 
-    // Login-Seite (statisch)
     app.get('/', (req, res) => {
         const cookies = req.headers.cookie || '';
         const sessionMatch = cookies.match(/session=([^;]+)/);
         if (sessionMatch && activeSessions.has(sessionMatch[1])) {
-            // Bereits eingeloggt -> Zeige Interface
             res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
         } else {
-            // Nicht eingeloggt -> Zeige Login
             res.sendFile(path.join(__dirname, '..', 'public', 'login.html'));
         }
     });
 
-    // Statische Assets (CSS, JS) ohne Auth
     app.use('/assets', express.static(path.join(__dirname, '..', 'public', 'assets')));
 
-    // Login-Endpoint
     app.post('/api/login', (req, res) => {
         const { username, password } = req.body;
         const cfg = getConfig();
@@ -100,23 +167,57 @@ function createServer() {
         if (username === cfg.username && password === cfg.password) {
             const sessionToken = uuidv4();
             activeSessions.set(sessionToken, { username });
-            res.setHeader('Set-Cookie', `session=${sessionToken}; HttpOnly; Path=/; Max-Age=86400`);
+            saveSessions();
+            res.setHeader('Set-Cookie', `session=${sessionToken}; HttpOnly; Path=/; Max-Age=2592000`);
             res.json({ success: true });
         } else {
             res.status(401).json({ error: 'Falscher Benutzername oder Passwort' });
         }
     });
 
-    // Logout-Endpoint
     app.post('/api/logout', (req, res) => {
         const cookies = req.headers.cookie || '';
         const sessionMatch = cookies.match(/session=([^;]+)/);
-        if (sessionMatch) activeSessions.delete(sessionMatch[1]);
+        if (sessionMatch) {
+            activeSessions.delete(sessionMatch[1]);
+            saveSessions();
+        }
         res.setHeader('Set-Cookie', 'session=; HttpOnly; Path=/; Max-Age=0');
         res.json({ success: true });
     });
 
-    // Domain-Einstellung speichern
+    // User-Einstellungen speichern (API Key, Modell)
+    app.post('/api/user/settings', checkSession, (req, res) => {
+        const { apiKey, provider, model } = req.body;
+        const username = req.user.username;
+        
+        if (!userSettings[username]) userSettings[username] = {};
+        if (apiKey) userSettings[username].apiKey = encrypt(apiKey);
+        if (provider) userSettings[username].provider = provider;
+        if (model) userSettings[username].model = model;
+        
+        saveUserSettings();
+        res.json({ success: true });
+    });
+
+    // User-Einstellungen laden
+    app.get('/api/user/settings', checkSession, (req, res) => {
+        const username = req.user.username;
+        const settings = userSettings[username] || {};
+        
+        res.json({
+            apiKey: settings.apiKey ? decrypt(settings.apiKey) : '',
+            provider: settings.provider || 'groq',
+            model: settings.model || ''
+        });
+    });
+
+    // Chat-Verlauf laden
+    app.get('/api/chat/history/:sessionId', checkSession, (req, res) => {
+        const { sessionId } = req.params;
+        res.json({ history: chatHistory[sessionId] || [] });
+    });
+
     app.post('/api/settings/domain', checkSession, (req, res) => {
         const { domain } = req.body;
         const cfg = getConfig();
@@ -125,14 +226,13 @@ function createServer() {
         res.json({ success: true });
     });
 
-    // Domain abrufen
     app.get('/api/settings/domain', checkSession, (req, res) => {
         const cfg = getConfig();
         res.json({ domain: cfg.domain || '' });
     });
 
     app.post('/api/start', checkSession, (req, res) => {
-        const { provider, apiKey, directory, prompt, contextPath, deadline } = req.body;
+        const { provider, apiKey, directory, prompt, contextPath, deadline, model } = req.body;
         
         let deadlineMs = Date.now() + 8 * 60 * 60 * 1000;
         if(deadline) {
@@ -147,7 +247,7 @@ function createServer() {
 
         runAgent(
             sessionId,
-            { provider, apiKey, directory, initialPrompt: prompt, deadlineMs, initialContextData },
+            { provider, apiKey, model, directory, initialPrompt: prompt, deadlineMs, initialContextData },
             (msg) => broadcastLog(sessionId, msg),
             (sender, msg) => broadcastChat(sessionId, sender, msg)
         );
