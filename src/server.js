@@ -17,13 +17,10 @@ const SESSIONS_FILE      = path.join(__dirname, '..', 'data', 'sessions.json');
 const USER_SETTINGS_FILE = path.join(__dirname, '..', 'data', 'user-settings.json');
 
 // === Such-Kontext Cache (serverseitig) ===
-// Speichert Suchergebnisse für 10 Minuten.
-// Vorteil: Frontend sendet nur eine winzige ctxId statt MB-große Ergebnisse.
 const searchContextCache = new Map();
 function storeSearchContext(formatted) {
     const id = uuidv4().replace(/-/g, '').substring(0, 12);
     searchContextCache.set(id, { formatted, ts: Date.now() });
-    // Alte Einträge aufräumen (>10 Min)
     for (const [k, v] of searchContextCache.entries())
         if (Date.now() - v.ts > 600000) searchContextCache.delete(k);
     return id;
@@ -37,7 +34,25 @@ function createServer() {
     const server = http.createServer(app);
     const wss    = new WebSocket.Server({ server });
 
-    // Express built-in JSON parser (moderner als body-parser)
+    // ================================================================
+    // DIAGNOSE-MIDDLEWARE: Loggt JEDEN Request VOR allem anderen
+    // Auch body-parser Fehler werden hier sichtbar
+    // ================================================================
+    app.use((req, res, next) => {
+        const cookie = req.headers.cookie ? req.headers.cookie.substring(0, 40) + '...' : 'none';
+        console.log(`[REQ] ${req.method} ${req.path} | cookie: ${cookie} | content-type: ${req.headers['content-type'] || 'none'} | content-length: ${req.headers['content-length'] || '0'}`);
+        next();
+    });
+
+    // Cache-Control fuer alle /api Responses (verhindert Browser/NGINX Caching)
+    app.use('/api', (req, res, next) => {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        next();
+    });
+
+    // JSON Body-Parser
     app.use(express.json({ limit: '10mb' }));
     app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -49,13 +64,14 @@ function createServer() {
     function loadSessions() {
         if (fs.existsSync(SESSIONS_FILE)) {
             try { activeSessions = new Map(Object.entries(JSON.parse(fs.readFileSync(SESSIONS_FILE, 'utf8')))); }
-            catch(e) { activeSessions = new Map(); }
+            catch(e) { console.error('[Sessions] Ladefehler:', e.message); activeSessions = new Map(); }
         }
     }
     function saveSessions() {
         try { fs.writeFileSync(SESSIONS_FILE, JSON.stringify(Object.fromEntries(activeSessions), null, 2), 'utf8'); } catch(e) {}
     }
     loadSessions();
+    console.log(`[Sessions] ${activeSessions.size} Session(s) geladen`);
 
     // ---- User Settings ----
     let userSettings = {};
@@ -93,11 +109,15 @@ function createServer() {
     const bLog  = (sid, msg)         => wsClients.forEach(ws => { if (ws.readyState===1) try{ws.send(JSON.stringify({type:'log',sessionId:sid,message:msg}));}catch(e){} });
     const bChat = (sid, sender, msg) => wsClients.forEach(ws => { if (ws.readyState===1) try{ws.send(JSON.stringify({type:'chat',sessionId:sid,sender,message:msg}));}catch(e){} });
 
-    // ---- Auth ----
+    // ---- Auth (mit Logging) ----
     function checkSession(req, res, next) {
-        const m = (req.headers.cookie||'').match(/session=([^;]+)/);
-        if (m && activeSessions.has(m[1])) { req.user = activeSessions.get(m[1]); return next(); }
-        res.status(401).json({ error: 'Nicht eingeloggt' });
+        const m     = (req.headers.cookie||'').match(/session=([^;]+)/);
+        const token = m ? m[1] : null;
+        const valid = !!(token && activeSessions.has(token));
+        console.log(`[Auth] ${req.method} ${req.path} | token: ${token ? token.substring(0,8)+'...' : 'KEIN'} | valid: ${valid} | sessions: ${activeSessions.size}`);
+        if (valid) { req.user = activeSessions.get(token); return next(); }
+        console.log(`[Auth] REJECT -> 401`);
+        return res.status(401).json({ error: 'Nicht eingeloggt' });
     }
 
     // ---- Context helpers ----
@@ -119,11 +139,6 @@ function createServer() {
         return '';
     }
 
-    /**
-     * Baut den vollen Kontext zusammen:
-     * - Datei/Ordner-Kontext (contextPath)
-     * - Suchergebnisse (ctxId → wird serverseitig nachgeschlagen)
-     */
     function buildCtx(contextPath, ctxId) {
         const parts = [];
         const f = readFileCtx(contextPath);
@@ -131,9 +146,9 @@ function createServer() {
         const s = getSearchContext(ctxId);
         if (s) {
             parts.push(
-                'HINWEIS FÜR KI: Du hast folgende aktuelle Web-Suchergebnisse.\n' +
+                'HINWEIS F\u00dcR KI: Du hast folgende aktuelle Web-Suchergebnisse.\n' +
                 'Nutze diese Informationen um die Frage zu beantworten.\n' +
-                'Antworte als normaler Text, kein Bash nötig. Schreibe am Ende "Fertig!".\n\n' + s
+                'Antworte als normaler Text, kein Bash n\u00f6tig. Schreibe am Ende "Fertig!".\n\n' + s
             );
         }
         return parts.join('\n\n');
@@ -142,6 +157,23 @@ function createServer() {
     // =========================================================
     // ROUTES
     // =========================================================
+
+    // ---- DIAGNOSE (kein Auth!) ----
+    app.get('/api/ping', (req, res) => {
+        res.json({
+            ok:      true,
+            time:    new Date().toISOString(),
+            method:  req.method,
+            path:    req.path,
+            sessions: activeSessions.size,
+            cookie:  req.headers.cookie ? req.headers.cookie.substring(0, 60) + '...' : 'none',
+            headers: {
+                host:           req.headers.host,
+                'content-type': req.headers['content-type'] || 'none',
+                'x-forwarded-for': req.headers['x-forwarded-for'] || 'none'
+            }
+        });
+    });
 
     app.get('/', (req, res) => {
         const m = (req.headers.cookie||'').match(/session=([^;]+)/);
@@ -179,10 +211,7 @@ function createServer() {
         } catch(e) { return res.status(500).json({error:e.message}); }
     });
 
-    // -------- WEB-SUCHE (kein API-Key, kostenlos) --------
-    // WICHTIG: Ergebnisse werden SERVERSEITIG gespeichert.
-    // Frontend bekommt nur eine winzige ctxId zurück.
-    // Das verhindert den HTTP 400 durch große Request-Bodies!
+    // -------- WEB-SUCHE --------
     app.post('/api/search', checkSession, async (req, res) => {
         try {
             const { query, maxResults = 6 } = req.body;
@@ -190,7 +219,6 @@ function createServer() {
             console.log(`[Search] "${query}"`);
             const results   = await webSearch(query.trim(), maxResults);
             const formatted = formatForAI(query.trim(), results);
-            // Ergebnisse serverseitig cachen, ID zurückgeben
             const ctxId = storeSearchContext(formatted);
             console.log(`[Search] ctxId=${ctxId}, ${results.length} Ergebnisse, ${formatted.length} Bytes`);
             return res.json({ success:true, ctxId, count:results.length, bytes:formatted.length });
@@ -233,8 +261,16 @@ function createServer() {
 
     // -------- CHAT MANAGEMENT --------
     app.get('/api/chats', checkSession, async (req,res) => {
-        try { return res.json({chats: await chatManager.getChatList(req.user.username)}); }
-        catch(e) { return res.status(500).json({error:e.message}); }
+        console.log(`[Chats] GET - user: ${req.user?.username}`);
+        try { 
+            const chats = await chatManager.getChatList(req.user.username);
+            console.log(`[Chats] OK - ${chats.length} Chats`);
+            return res.json({chats});
+        }
+        catch(e) { 
+            console.error('[Chats] FEHLER:', e.message);
+            return res.status(500).json({error:e.message}); 
+        }
     });
     app.get('/api/chats/:id', checkSession, async (req,res) => {
         try {
@@ -283,7 +319,6 @@ function createServer() {
     });
 
     // -------- AGENT START --------
-    // Empfängt jetzt nur noch eine winzige ctxId, NICHT mehr die großen Suchergebnisse!
     app.post('/api/start', checkSession, (req, res) => {
         try {
             console.log('[/api/start] body:', JSON.stringify({
@@ -298,9 +333,7 @@ function createServer() {
             if (!provider) return res.status(400).json({error:'Provider fehlt'});
             if (!prompt)   return res.status(400).json({error:'Prompt fehlt'});
 
-            // Kontext aus Cache laden (serverseitig, kein großer Body!)
             const fullCtx = buildCtx(contextPath, ctxId);
-
             const sessionId = uuidv4().substring(0,8).toUpperCase();
             runAgent(
                 sessionId,
@@ -334,12 +367,11 @@ function createServer() {
     });
 
     // -------- GLOBALER FEHLER-HANDLER --------
-    // Fängt body-parser Parse-Fehler und andere Express-Fehler ab
     app.use((err, req, res, next) => {
-        console.error('[Express Error]', err.type||'', err.status||500, err.message);
+        console.error('[Express Fehler]', err.type||'', err.status||500, err.message);
         const status = err.status || err.statusCode || 500;
         const msg    = err.type === 'entity.parse.failed'
-            ? `JSON Parse-Fehler: ${err.message}` : err.message;
+            ? `JSON Parse-Fehler: ${err.message}` : (err.message || 'Unbekannter Fehler');
         return res.status(status).json({error: msg});
     });
 
