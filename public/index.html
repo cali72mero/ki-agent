@@ -16,7 +16,6 @@
 
     .layout{display:flex;flex:1;overflow:hidden;}
 
-    /* SIDEBAR LINKS */
     .chat-list-sidebar{width:260px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;}
     .chat-list-header{padding:14px;border-bottom:1px solid var(--border);}
     .new-chat-btn{width:100%;background:var(--accent);color:#000;border:none;border-radius:6px;padding:9px;font-weight:bold;cursor:pointer;font-size:.875rem;}
@@ -30,23 +29,17 @@
     .chat-list-footer{padding:10px;border-top:1px solid var(--border);}
     .delete-all-btn{width:100%;background:#2a0000;color:var(--red);border:1px solid var(--red);border-radius:6px;padding:7px;font-size:.78rem;cursor:pointer;}
 
-    /* HAUPTBEREICH */
     .main-content{flex:1;display:flex;flex-direction:column;background:var(--bg);position:relative;}
     .chat-history{flex:1;padding:18px;overflow-y:auto;display:flex;flex-direction:column;gap:14px;}
     .msg{max-width:80%;padding:11px 15px;border-radius:12px;font-size:.93rem;line-height:1.55;white-space:pre-wrap;}
     .msg.user{background:var(--accent);color:#000;align-self:flex-end;border-bottom-right-radius:2px;}
     .msg.ai{background:var(--surface);border:1px solid var(--border);align-self:flex-start;border-bottom-left-radius:2px;}
+    .msg.error{background:#2a0000;border:1px solid var(--red);color:#ff8888;align-self:flex-start;font-size:.85rem;}
 
-    /* INPUT */
     .chat-input-area{padding:14px;background:var(--surface);border-top:1px solid var(--border);display:flex;flex-direction:column;gap:8px;}
     .input-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
 
-    /* Web-Suche Toolbar-Badge */
-    .wsearch-badge{
-      display:none;background:#0a2a1a;border:1px solid var(--green);
-      color:var(--green);border-radius:6px;padding:4px 10px;
-      font-size:.78rem;align-items:center;gap:6px;
-    }
+    .wsearch-badge{display:none;background:#0a2a1a;border:1px solid var(--green);color:var(--green);border-radius:6px;padding:4px 10px;font-size:.78rem;align-items:center;gap:6px;}
     .wsearch-badge.visible{display:flex;}
     .wsearch-badge-close{background:none;border:none;color:var(--green);cursor:pointer;font-size:1rem;line-height:1;}
 
@@ -57,17 +50,12 @@
     .context-box{display:flex;gap:8px;}
     .context-box input{flex:1;background:#222;border:1px dashed var(--muted);border-radius:6px;padding:5px 10px;font-size:.8rem;color:#fff;}
     .chat-input-row{display:flex;gap:10px;}
-    .chat-input-row textarea{
-      flex:1;background:#111;border:1px solid var(--border);border-radius:8px;
-      color:#fff;padding:11px;min-height:52px;resize:vertical;outline:none;font-size:.9rem;
-      transition:border-color .2s;
-    }
+    .chat-input-row textarea{flex:1;background:#111;border:1px solid var(--border);border-radius:8px;color:#fff;padding:11px;min-height:52px;resize:vertical;outline:none;font-size:.9rem;transition:border-color .2s;}
     .chat-input-row textarea.search-mode{border-color:var(--green);}
     .btn-send{background:var(--accent);color:#000;border:none;border-radius:8px;padding:0 18px;font-weight:bold;cursor:pointer;font-size:.9rem;}
     .btn-send.searching{background:var(--green);animation:pulse .8s infinite;}
     @keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
 
-    /* SIDEBAR RECHTS */
     .config-sidebar{width:290px;background:var(--surface);border-left:1px solid var(--border);padding:18px;overflow-y:auto;}
     .config-sidebar h3{font-size:.88rem;color:var(--accent);margin-bottom:10px;}
     label{display:block;font-size:.78rem;color:var(--muted);margin:11px 0 4px;}
@@ -85,6 +73,7 @@
     .box-red small{color:var(--red);}
     .console-overlay{position:absolute;top:0;right:0;width:340px;bottom:0;background:#050505ed;border-left:1px solid var(--border);padding:10px;overflow-y:auto;font-family:monospace;font-size:.73rem;display:none;z-index:10;}
     .log-info{color:#aaa;margin-bottom:3px;}
+    .log-error{color:var(--red);margin-bottom:3px;font-weight:bold;}
   </style>
 </head>
 <body>
@@ -96,42 +85,36 @@
 </header>
 
 <div class="layout">
-  <!-- CHAT-LISTE -->
   <div class="chat-list-sidebar">
     <div class="chat-list-header"><button class="new-chat-btn" onclick="createNewChat()">➕ Neuer Chat</button></div>
     <div class="chat-list" id="chatList"></div>
     <div class="chat-list-footer"><button class="delete-all-btn" onclick="deleteAllChats()">🗑️ Alle löschen</button></div>
   </div>
 
-  <!-- HAUPTBEREICH -->
   <div class="main-content">
     <div class="chat-history" id="chatHistory">
       <div class="msg ai">Hallo! Sag mir was ich tun soll.
 
-💡 Tipp: Aktiviere 🌐 Web-Suche – dann such ich automatisch im Internet!</div>
+💡 Tipp: Aktiviere 🌐 Web-Suche (Auto) – dann such ich selbst im Internet!</div>
     </div>
 
     <div class="chat-input-area">
-      <!-- Toolbar: Web-Suche Button + Suchmode-Badge -->
       <div class="input-toolbar">
-        <button class="toolbar-btn" id="btnSearch" onclick="toggleSearchMode()" title="Nächste Nachricht als Web-Suche senden">
+        <button class="toolbar-btn" id="btnSearch" onclick="toggleSearchMode()" title="Nächste Nachricht als Web-Suche">
           🔍 Web-Suche
         </button>
-        <!-- Badge erscheint wenn Suchmodus aktiv -->
         <div class="wsearch-badge" id="searchBadge">
-          🌐 Suchmodus aktiv – Deine Nachricht wird zuerst gegoogelt
-          <button class="wsearch-badge-close" onclick="toggleSearchMode()" title="Abbrechen">×</button>
+          🌐 Suchmodus – Nachricht wird gegoogelt
+          <button class="wsearch-badge-close" onclick="toggleSearchMode()">×</button>
         </div>
         <span class="hint">Strg+Enter = Senden</span>
       </div>
 
-      <!-- Kontext-Datei -->
       <div class="hint">📁 Datei/Ordner als Kontext (optional)</div>
       <div class="context-box">
         <input type="text" id="contextPath" placeholder="z.B. /var/www/html/index.html">
       </div>
 
-      <!-- Haupteingabe -->
       <div class="chat-input-row">
         <textarea id="promptInput"
           placeholder="z.B. 'Erkläre mir Quantum Computing' oder 'Erstelle eine Webseite'"
@@ -143,7 +126,6 @@
     <div class="console-overlay" id="console"></div>
   </div>
 
-  <!-- KONFIGURATION RECHTS -->
   <div class="config-sidebar">
     <h3>⚙️ Konfiguration</h3>
 
@@ -179,20 +161,18 @@
     </select>
     <input type="text" id="directory" value="/var/www/html" style="margin-top:6px;">
 
-    <!-- Web-Suche (Auto-Modus) -->
     <div class="feature-box box-green">
       <label>
         <input type="checkbox" id="enableWebSearch">
         <strong>🌐 Web-Suche (Auto)</strong>
       </label>
       <small>
-        ✅ KI sucht <em>automatisch</em> wenn sie Infos braucht<br>
+        ✅ KI sucht <em>automatisch</em> wenn nötig<br>
         ✅ Kein API-Key, 100% kostenlos<br>
-        ✅ DuckDuckGo + SearXNG Fallback
+        ✅ DuckDuckGo + SearXNG
       </small>
     </div>
 
-    <!-- Root-Modus -->
     <div class="feature-box box-red">
       <label>
         <input type="checkbox" id="allowRoot" onchange="rootModeChanged()">
@@ -211,39 +191,29 @@
   let currentChatId = null;
   let ws;
   let allApiKeys    = {};
-  // Suchmodus: wenn true → nächste Nachricht wird ZUERST gesucht, dann an KI
   let searchMode    = false;
-  let isSearching   = false; // Verhindert Doppelklick während Suche läuft
+  let isSearching   = false;
 
-  // ====== SUCHMODUS TOGGLE ======
-  function toggleSearchMode() {
-    searchMode = !searchMode;
-    const btn    = document.getElementById('btnSearch');
-    const badge  = document.getElementById('searchBadge');
-    const ta     = document.getElementById('promptInput');
+  // Max. Größe für searchContext (40KB) – verhindert NGINX 400-Fehler
+  const MAX_CONTEXT_BYTES = 40000;
 
-    btn.classList.toggle('active', searchMode);
-    badge.classList.toggle('visible', searchMode);
-    ta.classList.toggle('search-mode', searchMode);
+  // ====== HILFSFUNKTIONEN ======
 
-    if (searchMode) {
-      ta.placeholder = '🔍 Suchbegriff eingeben... (wird im Internet gesucht + an KI gesendet)';
-      ta.focus();
-    } else {
-      ta.placeholder = "z.B. 'Erkläre mir Quantum Computing' oder 'Erstelle eine Webseite'";
+  /**
+   * Sicheres fetch + JSON parsen.
+   * Gibt { ok, status, data, rawText } zurück.
+   * Wirft NIE – Fehler kommen als { ok:false, ... }.
+   */
+  async function safeFetch(url, options = {}) {
+    try {
+      const res     = await fetch(url, options);
+      const rawText = await res.text();   // body nur einmal lesen
+      let   data    = null;
+      try   { data = JSON.parse(rawText); } catch(e) { /* kein JSON */ }
+      return { ok: res.ok, status: res.status, data, rawText };
+    } catch(netErr) {
+      return { ok: false, status: 0, data: null, rawText: '', netError: netErr.message };
     }
-  }
-
-  // ====== ROOT-MODUS WARNUNG ======
-  function rootModeChanged() {
-    const c = document.getElementById('allowRoot').checked;
-    if (c && !confirm('⚠️ WARNUNG!\n\nRoot-Modus gibt dem Agent VOLLE System-Kontrolle!\n\nFortfahren?'))
-      document.getElementById('allowRoot').checked = false;
-  }
-
-  function toggleConsole() {
-    const c = document.getElementById('console');
-    c.style.display = c.style.display === 'block' ? 'none' : 'block';
   }
 
   function addMsg(sender, text) {
@@ -256,54 +226,98 @@
     if (currentChatId) saveMessageToChat(currentChatId, { sender, text, timestamp: Date.now() });
   }
 
-  function addLog(text) {
+  function addError(text) {
+    const h = document.getElementById('chatHistory');
+    const d = document.createElement('div');
+    d.className = 'msg error';
+    d.innerText  = text;
+    h.appendChild(d);
+    h.scrollTop = h.scrollHeight;
+  }
+
+  function addLog(text, isError = false) {
     const c = document.getElementById('console');
     const d = document.createElement('div');
-    d.className = 'log-info';
+    d.className = isError ? 'log-error' : 'log-info';
     d.innerText = text;
     c.appendChild(d);
     c.scrollTop = c.scrollHeight;
+    // Konsole bei Fehler automatisch öffnen
+    if (isError) c.style.display = 'block';
   }
 
+  function handleApiError(label, result) {
+    let msg = `HTTP ${result.status}`;
+    if (result.netError)             msg = `Netzwerk-Fehler: ${result.netError}`;
+    else if (result.data?.error)     msg = result.data.error;
+    else if (result.rawText)         msg = result.rawText.substring(0, 300);
+    addError(`❌ ${label} fehlgeschlagen (${msg})\n\nTipps:\n• Terminal öffnen (📟 Button oben) für Details\n• Server neu starten: systemctl restart ki-agent\n• Logs: journalctl -u ki-agent -n 50`);
+    addLog(`❌ ${label}: ${msg}`, true);
+  }
+
+  // ====== SUCHMODUS ======
+  function toggleSearchMode() {
+    searchMode = !searchMode;
+    document.getElementById('btnSearch').classList.toggle('active', searchMode);
+    document.getElementById('searchBadge').classList.toggle('visible', searchMode);
+    const ta = document.getElementById('promptInput');
+    ta.classList.toggle('search-mode', searchMode);
+    ta.placeholder = searchMode
+      ? '🔍 Suchbegriff eingeben... (wird gegoogelt + an KI gesendet)'
+      : "z.B. 'Erkläre mir Quantum Computing'";
+    if (searchMode) ta.focus();
+  }
+
+  function rootModeChanged() {
+    if (document.getElementById('allowRoot').checked &&
+        !confirm('⚠️ WARNUNG!\n\nRoot-Modus = VOLLE System-Kontrolle!\n\nFortfahren?'))
+      document.getElementById('allowRoot').checked = false;
+  }
+
+  function toggleConsole() {
+    const c = document.getElementById('console');
+    c.style.display = c.style.display === 'block' ? 'none' : 'block';
+  }
+
+  // ====== WEBSOCKET ======
   function connectWS() {
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
     ws = new WebSocket(`${proto}://${location.host}`);
     ws.onmessage = (e) => {
-      const msg = JSON.parse(e.data);
-      if (msg.type === 'chat') addMsg(msg.sender, msg.message);
-      if (msg.type === 'log')  addLog(msg.message);
+      try {
+        const msg = JSON.parse(e.data);
+        if (msg.type === 'chat') addMsg(msg.sender, msg.message);
+        if (msg.type === 'log')  addLog(msg.message);
+      } catch(err) {}
     };
     ws.onclose = () => setTimeout(connectWS, 3000);
   }
   connectWS();
 
   async function logout() {
-    await fetch('/api/logout', { method: 'POST' });
+    await safeFetch('/api/logout', { method: 'POST' });
     window.location.href = '/';
   }
 
   // ====== EINSTELLUNGEN ======
   function updateApiKeyPlaceholder() {
-    const p  = document.getElementById('provider').value;
+    const p = document.getElementById('provider').value;
     const ki = document.getElementById('apiKey');
     const kl = document.getElementById('apiKeyLabel');
-    if (p === 'ollama')       { ki.placeholder = 'Nicht nötig'; kl.innerText = 'API Key (bei Ollama nicht nötig)'; }
+    if      (p === 'ollama')        { ki.placeholder = 'Nicht nötig';           kl.innerText = 'API Key (nicht nötig)'; }
     else if (p === 'ollama-online') { ki.placeholder = 'http://server:11434'; kl.innerText = 'Ollama Server URL'; }
-    else                      { ki.placeholder = 'API Key eingeben...'; kl.innerText = 'API Key (verschlüsselt gespeichert)'; }
+    else                            { ki.placeholder = 'API Key eingeben...';   kl.innerText = 'API Key (verschlüsselt)'; }
   }
 
   async function loadSettings() {
-    try {
-      const res = await fetch('/api/user/settings');
-      if (!res.ok) return;
-      const data   = await res.json();
-      allApiKeys   = data.apiKeys || {};
-      document.getElementById('provider').value = data.provider || 'groq';
-      document.getElementById('apiKey').value   = data.apiKey   || '';
-      updateApiKeyPlaceholder();
-      if (data.provider === 'ollama' || data.apiKey) await loadModels();
-      if (data.model) document.getElementById('modelSelect').value = data.model;
-    } catch(e) { console.error('loadSettings:', e); }
+    const r = await safeFetch('/api/user/settings');
+    if (!r.ok || !r.data) return;
+    allApiKeys = r.data.apiKeys || {};
+    document.getElementById('provider').value = r.data.provider || 'groq';
+    document.getElementById('apiKey').value   = r.data.apiKey   || '';
+    updateApiKeyPlaceholder();
+    if (r.data.provider === 'ollama' || r.data.apiKey) await loadModels();
+    if (r.data.model) document.getElementById('modelSelect').value = r.data.model;
   }
   loadSettings();
 
@@ -318,9 +332,8 @@
 
   function apiKeyChanged() {
     const p = document.getElementById('provider').value;
-    const k = document.getElementById('apiKey').value.trim();
-    allApiKeys[p] = k;
-    if (k || p === 'ollama') loadModels();
+    allApiKeys[p] = document.getElementById('apiKey').value.trim();
+    if (allApiKeys[p] || p === 'ollama') loadModels();
   }
 
   async function loadModels() {
@@ -328,27 +341,25 @@
     let   apiKey   = document.getElementById('apiKey').value.trim();
     if (!apiKey && provider !== 'ollama') return;
     if (provider === 'ollama') apiKey = 'local';
-
     const loading = document.getElementById('modelLoading');
     const select  = document.getElementById('modelSelect');
     loading.style.display = 'inline';
     select.innerHTML = '<option>Lädt...</option>';
-    try {
-      const res = await fetch('/api/models', {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ provider, apiKey })
+    const r = await safeFetch('/api/models', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ provider, apiKey })
+    });
+    if (r.ok && r.data?.models) {
+      select.innerHTML = '<option value="">Standard</option>';
+      r.data.models.forEach(m => {
+        const o = document.createElement('option');
+        o.value    = m.id;
+        o.innerText = (m.name || m.id) + (m.free ? ' 🆓' : '');
+        select.appendChild(o);
       });
-      if (res.ok) {
-        const d = await res.json();
-        select.innerHTML = '<option value="">Standard</option>';
-        d.models.forEach(m => {
-          const o = document.createElement('option');
-          o.value   = m.id;
-          o.innerText = (m.name || m.id) + (m.free ? ' 🆓' : '');
-          select.appendChild(o);
-        });
-      } else select.innerHTML = '<option>Fehler</option>';
-    } catch(e) { select.innerHTML = '<option>Fehler</option>'; }
+    } else {
+      select.innerHTML = '<option>Fehler</option>';
+    }
     loading.style.display = 'none';
   }
 
@@ -357,87 +368,74 @@
     const apiKey   = document.getElementById('apiKey').value.trim();
     const model    = document.getElementById('modelSelect').value;
     allApiKeys[provider] = apiKey;
-    try {
-      const res = await fetch('/api/user/settings', {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ provider, apiKey, model })
-      });
-      if (res.ok) alert('✔️ Gespeichert!');
-      else { const e = await res.json(); alert('❌ ' + (e.error || 'Fehler')); }
-    } catch(e) { alert('❌ ' + e.message); }
+    const r = await safeFetch('/api/user/settings', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ provider, apiKey, model })
+    });
+    if (r.ok) alert('✔️ Gespeichert!');
+    else      alert('❌ ' + (r.data?.error || r.rawText || 'Fehler'));
   }
 
   // ====== CHAT-VERWALTUNG ======
   async function loadChatList() {
-    try {
-      const res = await fetch('/api/chats');
-      if (!res.ok) return;
-      const data = await res.json();
-      const list = document.getElementById('chatList');
-      list.innerHTML = '';
-      if (!data.chats.length) {
-        list.innerHTML = '<div style="color:#666;font-size:.78rem;text-align:center;padding:18px;">Keine Chats</div>';
-        return;
-      }
-      data.chats.forEach(c => {
-        const item = document.createElement('div');
-        item.className = 'chat-item' + (c.id === currentChatId ? ' active' : '');
-        item.innerHTML = `<div class="chat-item-title">${c.title}</div><button class="chat-item-delete" onclick="deleteChat(${c.id},event)">×</button>`;
-        item.onclick = (e) => { if (!e.target.classList.contains('chat-item-delete')) loadChat(c.id); };
-        list.appendChild(item);
-      });
-    } catch(e) { console.error(e); }
+    const r = await safeFetch('/api/chats');
+    if (!r.ok || !r.data) return;
+    const list = document.getElementById('chatList');
+    list.innerHTML = '';
+    if (!r.data.chats.length) {
+      list.innerHTML = '<div style="color:#666;font-size:.78rem;text-align:center;padding:18px;">Keine Chats</div>';
+      return;
+    }
+    r.data.chats.forEach(c => {
+      const item = document.createElement('div');
+      item.className = 'chat-item' + (c.id === currentChatId ? ' active' : '');
+      item.innerHTML = `<div class="chat-item-title">${c.title}</div><button class="chat-item-delete" onclick="deleteChat(${c.id},event)">×</button>`;
+      item.onclick = (e) => { if (!e.target.classList.contains('chat-item-delete')) loadChat(c.id); };
+      list.appendChild(item);
+    });
   }
 
   async function createNewChat() {
-    try {
-      const res = await fetch('/api/chats/new', {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({
-          title: 'Chat ' + new Date().toLocaleTimeString('de-DE'),
-          message: { sender:'ai', text:'Hallo! Sag mir was ich tun soll.', timestamp: Date.now() }
-        })
-      });
-      if (res.ok) {
-        const d = await res.json();
-        currentChatId = d.chatId; sessionId = null;
-        await loadChatList(); await loadChat(d.chatId);
-      }
-    } catch(e) { alert('❌ ' + e.message); }
+    const r = await safeFetch('/api/chats/new', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        title: 'Chat ' + new Date().toLocaleTimeString('de-DE'),
+        message: { sender:'ai', text:'Hallo! Sag mir was ich tun soll.', timestamp: Date.now() }
+      })
+    });
+    if (r.ok && r.data?.chatId) {
+      currentChatId = r.data.chatId; sessionId = null;
+      await loadChatList(); await loadChat(r.data.chatId);
+    }
   }
 
   async function loadChat(chatId) {
-    try {
-      const res = await fetch(`/api/chats/${chatId}`);
-      if (!res.ok) return;
-      const d = await res.json();
-      currentChatId = chatId; sessionId = null;
-      const h = document.getElementById('chatHistory');
-      h.innerHTML = '';
-      d.chat.messages.forEach(m => {
-        const el = document.createElement('div');
-        el.className = `msg ${m.sender}`;
-        el.innerText = m.text;
-        h.appendChild(el);
-      });
-      h.scrollTop = h.scrollHeight;
-      loadChatList();
-    } catch(e) { console.error(e); }
+    const r = await safeFetch(`/api/chats/${chatId}`);
+    if (!r.ok || !r.data) return;
+    currentChatId = chatId; sessionId = null;
+    const h = document.getElementById('chatHistory');
+    h.innerHTML = '';
+    r.data.chat.messages.forEach(m => {
+      const el = document.createElement('div');
+      el.className = `msg ${m.sender}`;
+      el.innerText = m.text;
+      h.appendChild(el);
+    });
+    h.scrollTop = h.scrollHeight;
+    loadChatList();
   }
 
   async function saveMessageToChat(chatId, msg) {
-    try {
-      await fetch(`/api/chats/${chatId}/message`, {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ message: msg })
-      });
-    } catch(e) {}
+    await safeFetch(`/api/chats/${chatId}/message`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ message: msg })
+    });
   }
 
   async function deleteChat(chatId, event) {
     event.stopPropagation();
     if (!confirm('Chat löschen?')) return;
-    await fetch(`/api/chats/${chatId}`, { method:'DELETE' });
+    await safeFetch(`/api/chats/${chatId}`, { method:'DELETE' });
     if (currentChatId === chatId) {
       currentChatId = null; sessionId = null;
       document.getElementById('chatHistory').innerHTML = '<div class="msg ai">Wähle oder erstelle einen Chat.</div>';
@@ -447,17 +445,17 @@
 
   async function deleteAllChats() {
     if (!confirm('ALLE Chats löschen?')) return;
-    await fetch('/api/chats', { method:'DELETE' });
+    await safeFetch('/api/chats', { method:'DELETE' });
     currentChatId = null; sessionId = null;
-    document.getElementById('chatHistory').innerHTML = '<div class="msg ai">Alle gelöscht. Neuen Chat erstellen!</div>';
+    document.getElementById('chatHistory').innerHTML = '<div class="msg ai">Alle gelöscht.</div>';
     loadChatList();
   }
 
   loadChatList();
 
-  // ====== NACHRICHT SENDEN (mit optionaler Web-Suche) ======
+  // ====== HAUPTFUNKTION: NACHRICHT SENDEN ======
   async function sendPrompt() {
-    if (isSearching) return; // Verhindert Doppelklick
+    if (isSearching) return;
 
     const provider        = document.getElementById('provider').value;
     const apiKey          = document.getElementById('apiKey').value.trim();
@@ -469,83 +467,110 @@
     const enableWebSearch = document.getElementById('enableWebSearch').checked;
 
     if (!promptRaw) return;
-    if (!apiKey && !sessionId && provider !== 'ollama') { alert('⚠️ API Key fehlt!'); return; }
+    if (!apiKey && !sessionId && provider !== 'ollama') {
+      addError('⚠️ API Key fehlt! Bitte in der Sidebar einträgen und speichern.');
+      return;
+    }
+
+    // Chat erstellen falls noch keiner existiert
     if (!currentChatId) await createNewChat();
 
-    // Nachricht im Chat anzeigen (immer das Original)
+    // Nachricht anzeigen (User sieht immer seinen Originaltext)
     addMsg('user', promptRaw);
     document.getElementById('promptInput').value = '';
     document.getElementById('contextPath').value = '';
 
     let extraContext = '';
 
-    // ---- MODUS 1: Manueller Suchmodus (Toolbar-Button) ----
-    // User hat auf "🔍 Web-Suche" geklickt → nächste Nachricht wird gesucht
+    // ---- SCHRITT 1: Web-Suche (wenn Suchmodus aktiv) ----
     if (searchMode) {
       isSearching = true;
-      document.getElementById('btnSend').classList.add('searching');
-      document.getElementById('btnSend').innerText = '🔍...';
+      const btn = document.getElementById('btnSend');
+      btn.classList.add('searching');
+      btn.innerText = '🔍...';
+      addLog(`🔍 Suche: "${promptRaw}"`);
 
-      try {
-        const sRes = await fetch('/api/search', {
-          method: 'POST', headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({ query: promptRaw, maxResults: 8 })
-        });
-        if (sRes.ok) {
-          const sData = await sRes.json();
-          extraContext = sData.formatted || '';
-          addLog(`🔍 ${sData.count} Ergebnisse für "${promptRaw}"`);
+      const sr = await safeFetch('/api/search', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ query: promptRaw, maxResults: 6 })
+      });
+
+      if (sr.ok && sr.data?.formatted) {
+        // Suchergebnisse auf max. 40KB begrenzen (verhindert NGINX 400-Fehler!)
+        extraContext = sr.data.formatted;
+        if (extraContext.length > MAX_CONTEXT_BYTES) {
+          extraContext = extraContext.substring(0, MAX_CONTEXT_BYTES) + '\n[...gekürzt]';
+          addLog('⚠️ Suchergebnisse auf 40KB gekürzt');
         }
-      } catch(e) {
-        addLog('⚠️ Web-Suche fehlgeschlagen: ' + e.message);
+        addLog(`✅ ${sr.data.count} Ergebnisse (${Math.round(extraContext.length/1024)}KB)`);
+      } else {
+        addLog('⚠️ Web-Suche fehlgeschlagen: ' + (sr.data?.error || `HTTP ${sr.status}`), true);
       }
 
-      // Suchmodus nach Senden automatisch deaktivieren
+      // Suchmodus zurücksetzen
       searchMode = false;
       document.getElementById('btnSearch').classList.remove('active');
       document.getElementById('searchBadge').classList.remove('visible');
       document.getElementById('promptInput').classList.remove('search-mode');
       document.getElementById('promptInput').placeholder = "z.B. 'Erkläre mir Quantum Computing'";
-      document.getElementById('btnSend').classList.remove('searching');
-      document.getElementById('btnSend').innerText = 'Senden';
+      btn.classList.remove('searching');
+      btn.innerText = 'Senden';
       isSearching = false;
     }
 
-    // ---- NACHRICHT AN KI SENDEN ----
-    // extraContext enthält die Suchergebnisse (unsichtbar für den User, aber KI sieht sie)
+    // ---- SCHRITT 2: An KI senden ----
+    addLog(`🚀 Sende an ${provider}${model ? ' (' + model + ')' : ''}...`);
+
     if (!sessionId) {
-      const res = await fetch('/api/start', {
+      // Neue Session starten
+      const r = await safeFetch('/api/start', {
         method: 'POST', headers: {'Content-Type':'application/json'},
         body: JSON.stringify({
           provider, apiKey, model, directory,
-          prompt: promptRaw,
-          contextPath: contextPath || '',
-          // Suchergebnisse kommen als initialContextData = für die KI sichtbar, für User unsichtbar
-          searchContext: extraContext,
+          prompt:        promptRaw,
+          contextPath:   contextPath || '',
+          searchContext: extraContext,  // Suchergebnisse kommen hier an!
           allowRoot,
           enableWebSearch
         })
       });
-      if (res.status === 401) { alert('Session abgelaufen!'); window.location.href='/'; return; }
-      const d = await res.json();
-      sessionId = d.sessionId;
+
+      if (r.status === 401) { alert('Session abgelaufen! Bitte neu einloggen.'); window.location.href='/'; return; }
+      if (!r.ok) { handleApiError('Agent-Start', r); return; }
+
+      sessionId = r.data?.sessionId;
+      addLog(`✅ Session: ${sessionId}`);
+
     } else {
-      // Bei bestehender Session: Suchergebnisse als Kontext zur Nachricht hinzufügen
-      await fetch('/api/chat', {
+      // Nachricht zur bestehenden Session
+      const r = await safeFetch('/api/chat', {
         method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ sessionId, prompt: promptRaw, contextPath, searchContext: extraContext })
+        body: JSON.stringify({
+          sessionId,
+          prompt:        promptRaw,
+          contextPath:   contextPath || '',
+          searchContext: extraContext
+        })
       });
+
+      if (r.status === 401) { alert('Session abgelaufen!'); window.location.href='/'; return; }
+      if (!r.ok) {
+        // Session evtl. abgelaufen – neu starten
+        addLog('⚠️ Session ungültig, starte neu...');
+        sessionId = null;
+        await sendPrompt();  // Rekursiv mit neuer Session
+        return;
+      }
     }
   }
 
   async function updateSystem() {
     if (!confirm('🔄 Updaten?')) return;
-    addLog('Suche Updates...');
-    const res = await fetch('/api/update', { method:'POST' });
-    if (res.status === 401) { alert('Session abgelaufen!'); window.location.href='/'; return; }
-    const d = await res.json();
-    if (d.success) { addLog(`✔️ ${d.message}`); alert('✔️ Update!'); }
-    else           { addLog(`❌ ${d.error}`);   alert(`❌ ${d.error}`); }
+    addLog('Update läuft...');
+    const r = await safeFetch('/api/update', { method:'POST' });
+    if (r.status === 401) { alert('Session abgelaufen!'); window.location.href='/'; return; }
+    if (r.ok) { addLog(`✔️ ${r.data?.message}`); alert('✔️ Update fertig!'); }
+    else      { handleApiError('Update', r); }
   }
 </script>
 </body>
