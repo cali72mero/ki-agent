@@ -1,155 +1,151 @@
-// Web-Search Tool - Kostenlose DuckDuckGo Suche
+// Web-Search Tool - DuckDuckGo (100% kostenlos, kein API-Key)
 const https = require('https');
-const { URL } = require('url');
+const http  = require('http');
 
 /**
- * Suche im Internet via DuckDuckGo (KOSTENLOS!)
- * @param {string} query - Suchbegriff
- * @param {number} maxResults - Anzahl Ergebnisse (Standard: 5)
- * @returns {Promise<Array>} - Array mit {title, url, snippet}
+ * Suche via DuckDuckGo HTML (gratis, kein Key)
  */
-async function search(query, maxResults = 5) {
-    try {
-        console.log(`🔍 Web-Suche: "${query}"`);
-        
-        // DuckDuckGo HTML-Suche (ohne API-Key!)
-        const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
-        
-        const html = await httpsGet(searchUrl);
-        const results = parseResults(html, maxResults);
-        
-        console.log(`✅ ${results.length} Ergebnisse gefunden`);
-        return results;
-        
-    } catch (error) {
-        console.error('❌ Web-Suche fehlgeschlagen:', error.message);
-        return [];
-    }
-}
-
-/**
- * HTTP GET Request
- */
-function httpsGet(url) {
-    return new Promise((resolve, reject) => {
-        https.get(url, {
+function duckduckgoSearch(query, maxResults = 6) {
+    return new Promise((resolve) => {
+        const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+        const options = {
+            hostname: 'html.duckduckgo.com',
+            path: `/html/?q=${encodeURIComponent(query)}`,
+            method: 'GET',
             headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            }
-        }, (res) => {
+                'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
+                'Accept-Language': 'de-DE,de;q=0.9,en;q=0.8'
+            },
+            timeout: 8000
+        };
+
+        const req = https.request(options, (res) => {
             let data = '';
-            res.on('data', chunk => data += chunk);
-            res.on('end', () => resolve(data));
-        }).on('error', reject);
+            res.on('data', c => data += c);
+            res.on('end', () => {
+                try {
+                    const results = parseDDG(data, maxResults);
+                    resolve(results);
+                } catch(e) {
+                    resolve([]);
+                }
+            });
+        });
+        req.on('error', () => resolve([]));
+        req.on('timeout', () => { req.destroy(); resolve([]); });
+        req.end();
     });
 }
 
-/**
- * Parse DuckDuckGo HTML Results
- */
-function parseResults(html, maxResults) {
+function parseDDG(html, max) {
     const results = [];
-    
-    // Regex für Result-Blöcke
-    const resultRegex = /<div class="result[^"]*">([\s\S]*?)<\/div>\s*<\/div>/g;
-    const titleRegex = /<a[^>]*class="result__a"[^>]*href="([^"]+)"[^>]*>([^<]+)<\/a>/;
-    const snippetRegex = /<a class="result__snippet"[^>]*>([^<]+)<\/a>/;
-    
-    let match;
-    while ((match = resultRegex.exec(html)) !== null && results.length < maxResults) {
-        const block = match[1];
-        
-        const titleMatch = titleRegex.exec(block);
-        const snippetMatch = snippetRegex.exec(block);
-        
-        if (titleMatch) {
-            results.push({
-                title: decodeHTML(titleMatch[2].trim()),
-                url: titleMatch[1],
-                snippet: snippetMatch ? decodeHTML(snippetMatch[1].trim()) : ''
-            });
-        }
+    // Match result divs
+    const blockRe = /<div class="result[\s\S]*?<\/div>\s*<\/div>\s*<\/div>/g;
+    const titleRe = /<a[^>]+class="result__a"[^>]*>([\s\S]*?)<\/a>/;
+    const snippetRe = /<a[^>]+class="result__snippet"[^>]*>([\s\S]*?)<\/a>/;
+    const urlRe = /uddg=([^&"]+)/;
+
+    let m;
+    while ((m = blockRe.exec(html)) !== null && results.length < max) {
+        const block = m[0];
+        const tm = titleRe.exec(block);
+        const sm = snippetRe.exec(block);
+        const um = urlRe.exec(block);
+        if (!tm) continue;
+
+        results.push({
+            title:   decodeHTML(tm[1].replace(/<[^>]+>/g, '').trim()),
+            snippet: sm ? decodeHTML(sm[1].replace(/<[^>]+>/g, '').trim()) : '',
+            url:     um ? decodeURIComponent(um[1]) : ''
+        });
     }
-    
     return results;
 }
 
 /**
- * Decode HTML Entities
+ * Fallback: SearXNG öffentliche Instanz (auch gratis)
  */
-function decodeHTML(text) {
-    return text
-        .replace(/&amp;/g, '&')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&quot;/g, '"')
-        .replace(/&#39;/g, "'");
-}
-
-/**
- * Suche + Formatierung für AI
- * @param {string} query - Suchbegriff
- * @returns {Promise<string>} - Formatierte Ergebnisse
- */
-async function searchAndFormat(query) {
-    const results = await search(query, 5);
-    
-    if (results.length === 0) {
-        return `Keine Ergebnisse für "${query}" gefunden.`;
-    }
-    
-    let formatted = `🔍 Web-Suche: "${query}"\n\n`;
-    
-    results.forEach((result, i) => {
-        formatted += `${i + 1}. **${result.title}**\n`;
-        formatted += `   URL: ${result.url}\n`;
-        if (result.snippet) {
-            formatted += `   ${result.snippet}\n`;
-        }
-        formatted += '\n';
-    });
-    
-    return formatted;
-}
-
-/**
- * Alternative: Searx Metasearch (falls DuckDuckGo blockiert)
- */
-async function searxSearch(query, maxResults = 5) {
-    try {
-        // Öffentliche Searx-Instanz
-        const apiUrl = `https://searx.be/search?q=${encodeURIComponent(query)}&format=json`;
-        const response = await httpsGetJSON(apiUrl);
-        
-        return response.results.slice(0, maxResults).map(r => ({
-            title: r.title,
-            url: r.url,
-            snippet: r.content || ''
-        }));
-    } catch (error) {
-        console.error('❌ Searx-Suche fehlgeschlagen:', error.message);
-        return [];
-    }
-}
-
-function httpsGetJSON(url) {
-    return new Promise((resolve, reject) => {
-        https.get(url, (res) => {
+function searxSearch(query, maxResults = 6) {
+    return new Promise((resolve) => {
+        const path = `/search?q=${encodeURIComponent(query)}&format=json&language=de`;
+        const options = {
+            hostname: 'searx.be',
+            path,
+            method: 'GET',
+            headers: { 'User-Agent': 'KI-Agent/1.0', 'Accept': 'application/json' },
+            timeout: 8000
+        };
+        const req = https.request(options, (res) => {
             let data = '';
-            res.on('data', chunk => data += chunk);
+            res.on('data', c => data += c);
             res.on('end', () => {
                 try {
-                    resolve(JSON.parse(data));
-                } catch (e) {
-                    reject(e);
-                }
+                    const json = JSON.parse(data);
+                    const results = (json.results || []).slice(0, maxResults).map(r => ({
+                        title: r.title || '',
+                        snippet: r.content || '',
+                        url: r.url || ''
+                    }));
+                    resolve(results);
+                } catch(e) { resolve([]); }
             });
-        }).on('error', reject);
+        });
+        req.on('error', () => resolve([]));
+        req.on('timeout', () => { req.destroy(); resolve([]); });
+        req.end();
     });
 }
 
-module.exports = {
-    search,
-    searchAndFormat,
-    searxSearch
-};
+/**
+ * Hauptfunktion: DuckDuckGo → Fallback SearX
+ * @param {string} query
+ * @param {number} maxResults
+ * @returns {Promise<Array<{title,snippet,url}>>}
+ */
+async function search(query, maxResults = 6) {
+    console.log(`🔍 Web-Suche: "${query}"`);
+    let results = await duckduckgoSearch(query, maxResults);
+    if (!results || results.length === 0) {
+        console.log('🔄 DDG leer, versuche SearX...');
+        results = await searxSearch(query, maxResults);
+    }
+    console.log(`✅ ${results.length} Ergebnisse für "${query}"`);
+    return results;
+}
+
+/**
+ * Formatiert Suchergebnisse für AI-Kontext
+ * @param {string} query
+ * @param {Array} results
+ * @returns {string}
+ */
+function formatForAI(query, results) {
+    if (!results || results.length === 0) {
+        return `[Web-Suche: Keine Ergebnisse für "${query}"]`;
+    }
+
+    let text = `=== WEB-SUCHE: "${query}" ===\n`;
+    text += `Gefunden: ${results.length} Ergebnisse\n\n`;
+
+    results.forEach((r, i) => {
+        text += `[${i+1}] ${r.title}\n`;
+        if (r.url)     text += `    URL: ${r.url}\n`;
+        if (r.snippet) text += `    ${r.snippet}\n`;
+        text += '\n';
+    });
+
+    text += `=== ENDE WEB-SUCHE ===\n`;
+    return text;
+}
+
+function decodeHTML(s) {
+    return s
+        .replace(/&amp;/g,'&')
+        .replace(/&lt;/g,'<')
+        .replace(/&gt;/g,'>')
+        .replace(/&quot;/g,'"')
+        .replace(/&#39;/g,"'")
+        .replace(/&nbsp;/g,' ');
+}
+
+module.exports = { search, formatForAI, duckduckgoSearch, searxSearch };

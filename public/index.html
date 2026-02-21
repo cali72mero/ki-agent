@@ -5,91 +5,91 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>KI-Agent Interface</title>
   <style>
-    :root { --bg: #0d0d0d; --surface: #1a1a1a; --border: #2d2d2d; --accent: #00d4ff; --green: #00ff88; --red: #ff4545; --text: #e0e0e0; --muted: #888; }
+    :root { --bg: #0d0d0d; --surface: #1a1a1a; --border: #2d2d2d; --accent: #00d4ff; --green: #00ff88; --red: #ff4545; --orange: #ff9500; --text: #e0e0e0; --muted: #888; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; }
-    
-    header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; gap: 16px; }
+
+    header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 20px; display: flex; align-items: center; gap: 12px; }
     header h1 { font-size: 1rem; color: var(--accent); }
     .header-btn { background: #222; color: #fff; border: 1px solid #444; border-radius: 4px; padding: 4px 10px; cursor: pointer; font-size: 0.8rem; }
-    .logout-btn { margin-left: auto; background: var(--red); color: #fff; border: none; border-radius: 6px; padding: 6px 16px; cursor: pointer; font-size: 0.85rem; }
-    
+    .logout-btn { margin-left: auto; background: var(--red); color: #fff; border: none; border-radius: 6px; padding: 6px 14px; cursor: pointer; font-size: 0.8rem; }
+
     .layout { display: flex; flex: 1; overflow: hidden; }
-    
-    /* CHAT-LISTE LINKS */
-    .chat-list-sidebar { width: 280px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
-    .chat-list-header { padding: 16px; border-bottom: 1px solid var(--border); }
-    .new-chat-btn { width: 100%; background: var(--accent); color: #000; border: none; border-radius: 6px; padding: 10px; font-weight: bold; cursor: pointer; font-size: 0.9rem; }
-    .new-chat-btn:hover { opacity: 0.9; }
-    
+
+    /* CHAT-LISTE */
+    .chat-list-sidebar { width: 260px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+    .chat-list-header { padding: 14px; border-bottom: 1px solid var(--border); }
+    .new-chat-btn { width: 100%; background: var(--accent); color: #000; border: none; border-radius: 6px; padding: 9px; font-weight: bold; cursor: pointer; font-size: 0.875rem; }
     .chat-list { flex: 1; overflow-y: auto; padding: 8px; }
-    .chat-item { background: #1a1a1a; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 6px; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: 0.2s; }
+    .chat-item { background: #1a1a1a; border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; margin-bottom: 5px; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: 0.2s; }
     .chat-item:hover { background: #222; }
     .chat-item.active { background: #2a2a2a; border-color: var(--accent); }
-    .chat-item-title { flex: 1; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .chat-item-delete { background: transparent; border: none; color: var(--red); cursor: pointer; font-size: 1.1rem; opacity: 0; transition: 0.2s; }
+    .chat-item-title { flex: 1; font-size: 0.83rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .chat-item-delete { background: transparent; border: none; color: var(--red); cursor: pointer; font-size: 1.1rem; opacity: 0; }
     .chat-item:hover .chat-item-delete { opacity: 1; }
-    
-    .chat-list-footer { padding: 12px; border-top: 1px solid var(--border); }
-    .delete-all-btn { width: 100%; background: #2a0000; color: var(--red); border: 1px solid var(--red); border-radius: 6px; padding: 8px; font-size: 0.8rem; cursor: pointer; }
-    .delete-all-btn:hover { background: #3a0000; }
-    
+    .chat-list-footer { padding: 10px; border-top: 1px solid var(--border); }
+    .delete-all-btn { width: 100%; background: #2a0000; color: var(--red); border: 1px solid var(--red); border-radius: 6px; padding: 7px; font-size: 0.78rem; cursor: pointer; }
+
     /* HAUPTBEREICH */
     .main-content { flex: 1; display: flex; flex-direction: column; background: var(--bg); position: relative; }
-    
-    .chat-history { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
-    .msg { max-width: 80%; padding: 12px 16px; border-radius: 12px; font-size: 0.95rem; line-height: 1.5; white-space: pre-wrap; }
+    .chat-history { flex: 1; padding: 18px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+    .msg { max-width: 80%; padding: 11px 15px; border-radius: 12px; font-size: 0.93rem; line-height: 1.55; white-space: pre-wrap; }
     .msg.user { background: var(--accent); color: #000; align-self: flex-end; border-bottom-right-radius: 2px; }
-    .msg.ai { background: var(--surface); border: 1px solid var(--border); color: var(--text); align-self: flex-start; border-bottom-left-radius: 2px; }
-    
-    .chat-input-area { padding: 16px; background: var(--surface); border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
-    .chat-input-row { display: flex; gap: 10px; }
-    .chat-input-row textarea { flex: 1; background: #111; border: 1px solid var(--border); border-radius: 8px; color: #fff; padding: 12px; min-height: 50px; resize: vertical; outline: none; }
-    .btn-send { background: var(--accent); color: #000; border: none; border-radius: 8px; padding: 0 20px; font-weight: bold; cursor: pointer; }
-    
-    .context-box { display: flex; gap: 8px; align-items: center; }
-    .context-box input { flex: 1; background: #222; border: 1px dashed var(--muted); border-radius: 6px; padding: 6px 10px; font-size: 0.8rem; color: #fff; }
+    .msg.ai   { background: var(--surface); border: 1px solid var(--border); align-self: flex-start; border-bottom-left-radius: 2px; }
+    .msg.search-result { background: #0a2a1a; border: 1px solid var(--green); color: var(--green); align-self: flex-start; font-size: 0.82rem; font-family: monospace; }
+
+    /* INPUT BEREICH */
+    .chat-input-area { padding: 14px; background: var(--surface); border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
+    .input-toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .toolbar-btn { background: #222; border: 1px solid #444; color: #fff; border-radius: 6px; padding: 5px 10px; font-size: 0.78rem; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+    .toolbar-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .toolbar-btn.active { background: #0a2020; border-color: var(--green); color: var(--green); }
+    .search-input-box { display: none; gap: 6px; align-items: center; background: #0a1a0a; border: 1px solid var(--green); border-radius: 6px; padding: 6px 10px; }
+    .search-input-box.visible { display: flex; }
+    .search-input-box input { flex: 1; background: transparent; border: none; color: var(--green); font-size: 0.85rem; outline: none; font-family: monospace; }
+    .search-btn-go { background: var(--green); color: #000; border: none; border-radius: 4px; padding: 4px 10px; cursor: pointer; font-size: 0.8rem; font-weight: bold; }
     .context-help { font-size: 0.7rem; color: var(--muted); }
-    
-    /* KONFIGURATION RECHTS */
-    .config-sidebar { width: 300px; background: var(--surface); border-left: 1px solid var(--border); padding: 20px; overflow-y: auto; }
-    .config-sidebar h3 { font-size: 0.9rem; color: var(--accent); margin-bottom: 12px; }
-    
-    label { display: block; font-size: 0.8rem; color: var(--muted); margin: 12px 0 4px; }
-    input, select { width: 100%; background: #111; border: 1px solid var(--border); border-radius: 6px; color: #fff; padding: 8px 10px; font-size: 0.9rem; }
-    
-    .root-mode-box { background: #ff45451a; border: 1px solid var(--red); padding: 12px; border-radius: 8px; margin-top: 12px; }
-    .root-mode-box label { margin: 0; display: flex; align-items: center; gap: 8px; cursor: pointer; }
-    .root-mode-box input[type="checkbox"] { width: auto; margin: 0; cursor: pointer; }
-    .root-mode-box small { display: block; color: var(--red); font-size: 0.75rem; margin-top: 6px; line-height: 1.4; }
-    .root-mode-box strong { color: var(--red); }
-    
+    .context-box { display: flex; gap: 8px; }
+    .context-box input { flex: 1; background: #222; border: 1px dashed var(--muted); border-radius: 6px; padding: 5px 10px; font-size: 0.8rem; color: #fff; }
+    .chat-input-row { display: flex; gap: 10px; }
+    .chat-input-row textarea { flex: 1; background: #111; border: 1px solid var(--border); border-radius: 8px; color: #fff; padding: 11px; min-height: 50px; resize: vertical; outline: none; font-size: 0.9rem; }
+    .btn-send { background: var(--accent); color: #000; border: none; border-radius: 8px; padding: 0 18px; font-weight: bold; cursor: pointer; font-size: 0.9rem; }
+
+    /* KONFIGURATION */
+    .config-sidebar { width: 290px; background: var(--surface); border-left: 1px solid var(--border); padding: 18px; overflow-y: auto; }
+    .config-sidebar h3 { font-size: 0.88rem; color: var(--accent); margin-bottom: 10px; }
+    label { display: block; font-size: 0.78rem; color: var(--muted); margin: 11px 0 4px; }
+    input, select { width: 100%; background: #111; border: 1px solid var(--border); border-radius: 6px; color: #fff; padding: 7px 10px; font-size: 0.88rem; }
+    .root-mode-box { background: #ff45451a; border: 1px solid var(--red); padding: 11px; border-radius: 8px; margin-top: 10px; }
+    .root-mode-box label { margin: 0; display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text); }
+    .root-mode-box input[type="checkbox"] { width: auto; }
+    .root-mode-box small { display: block; color: var(--red); font-size: 0.72rem; margin-top: 6px; line-height: 1.4; }
+    .websearch-box { background: #00ff881a; border: 1px solid var(--green); padding: 11px; border-radius: 8px; margin-top: 10px; }
+    .websearch-box label { margin: 0; display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text); }
+    .websearch-box input[type="checkbox"] { width: auto; }
+    .websearch-box small { display: block; color: var(--green); font-size: 0.72rem; margin-top: 6px; line-height: 1.4; }
     .save-btn { width: 100%; background: var(--accent); color: #000; border: none; border-radius: 6px; padding: 8px; font-size: 0.8rem; font-weight: bold; cursor: pointer; margin-top: 10px; }
-    .loading-text { color: var(--muted); font-size: 0.75rem; margin-top: 4px; }
-    
-    .console-overlay { position: absolute; top: 0; right: 0; width: 350px; bottom: 0; background: #050505e6; border-left: 1px solid var(--border); padding: 10px; overflow-y: auto; font-family: monospace; font-size: 0.75rem; display: none; z-index: 10; }
-    .log-info { color: #aaa; margin-bottom: 4px; }
+    .loading-text { color: var(--muted); font-size: 0.72rem; }
+    .console-overlay { position: absolute; top: 0; right: 0; width: 340px; bottom: 0; background: #050505ed; border-left: 1px solid var(--border); padding: 10px; overflow-y: auto; font-family: monospace; font-size: 0.73rem; display: none; z-index: 10; }
+    .log-info { color: #aaa; margin-bottom: 3px; }
+    .section-title { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin: 14px 0 4px; border-top: 1px solid var(--border); padding-top: 10px; }
   </style>
 </head>
 <body>
 
 <header>
-  <h1>🤖 KI-Agent v0.1 Beta</h1>
-  <button onclick="toggleConsole()" class="header-btn">Terminal</button>
+  <h1>🤖 KI-Agent v0.2</h1>
+  <button onclick="toggleConsole()" class="header-btn">📟 Terminal</button>
   <button class="logout-btn" onclick="logout()">Abmelden</button>
 </header>
 
 <div class="layout">
-  <!-- CHAT-LISTE LINKS -->
+  <!-- CHAT-LISTE -->
   <div class="chat-list-sidebar">
     <div class="chat-list-header">
       <button class="new-chat-btn" onclick="createNewChat()">➕ Neuer Chat</button>
     </div>
-    
-    <div class="chat-list" id="chatList">
-      <!-- Chats werden hier dynamisch eingefügt -->
-    </div>
-    
+    <div class="chat-list" id="chatList"></div>
     <div class="chat-list-footer">
       <button class="delete-all-btn" onclick="deleteAllChats()">🗑️ Alle Chats löschen</button>
     </div>
@@ -100,95 +100,143 @@
     <div class="chat-history" id="chatHistory">
       <div class="msg ai">Hallo! Sag mir was ich tun soll.
 
-💡 Tipp: Ich arbeite automatisch an deiner Aufgabe und stoppe wenn fertig!</div>
+💡 Tipp: Aktiviere 🌐 Web-Suche für aktuelle Informationen aus dem Internet!</div>
     </div>
-    
+
     <div class="chat-input-area">
-      <div class="context-help">📁 Optional: Dateien/Ordner senden</div>
+      <!-- Toolbar -->
+      <div class="input-toolbar">
+        <button class="toolbar-btn" id="btnWebSearch" onclick="toggleSearchBox()" title="Web-Suche direkt im Chat starten">
+          🔍 Web-Suche
+        </button>
+        <span style="font-size:0.72rem; color:var(--muted);">Strg+Enter = Senden</span>
+      </div>
+
+      <!-- Direkte Suchbox -->
+      <div class="search-input-box" id="searchBox">
+        <span style="color:var(--green); font-size:0.8rem;">🔍</span>
+        <input type="text" id="searchQuery" placeholder="Suchbegriff eingeben..." onkeydown="if(event.key==='Enter') doDirectSearch()">
+        <button class="search-btn-go" onclick="doDirectSearch()">Suchen</button>
+      </div>
+
+      <!-- Kontext-Datei -->
+      <div class="context-help">📁 Datei/Ordner als Kontext (optional)</div>
       <div class="context-box">
         <input type="text" id="contextPath" placeholder="z.B. /var/www/html/index.html">
       </div>
+
+      <!-- Eingabezeile -->
       <div class="chat-input-row">
-        <textarea id="promptInput" placeholder="z.B. 'Erstelle 3 Webseiten über Anime'"></textarea>
+        <textarea id="promptInput"
+          placeholder="z.B. 'Erstelle eine moderne Webseite'"
+          onkeydown="if(event.ctrlKey&&event.key==='Enter'){sendPrompt();}"></textarea>
         <button class="btn-send" onclick="sendPrompt()">Senden</button>
       </div>
     </div>
-    
+
     <div class="console-overlay" id="console"></div>
   </div>
 
-  <!-- KONFIGURATION RECHTS -->
+  <!-- KONFIGURATION -->
   <div class="config-sidebar">
     <h3>⚙️ Konfiguration</h3>
-    
+
     <label>Provider</label>
     <select id="provider" onchange="providerChanged()">
-      <option value="groq">Groq (Kostenlos)</option>
+      <option value="groq">Groq (Kostenlos 🆓)</option>
       <option value="openai">OpenAI</option>
-      <option value="claude">Claude</option>
-      <option value="gemini">Gemini</option>
+      <option value="claude">Claude (Anthropic)</option>
+      <option value="gemini">Gemini (Google)</option>
       <option value="mistral">Mistral AI</option>
       <option value="xai">xAI (Grok)</option>
       <option value="deepseek">DeepSeek</option>
       <option value="cohere">Cohere</option>
       <option value="openrouter">OpenRouter</option>
-      <option value="ollama">Ollama (Lokal)</option>
+      <option value="ollama">Ollama (Lokal 🆓)</option>
       <option value="ollama-online">Ollama (Online/Custom)</option>
     </select>
-    
-    <label id="apiKeyLabel">API Key (wird verschlüsselt)</label>
-    <input type="password" id="apiKey" placeholder="API Key eingeben..." onchange="apiKeyChanged()">
-    
-    <label>Modell <span id="modelLoading" class="loading-text" style="display:none;">(lädt...)</span></label>
-    <select id="modelSelect">
-      <option value="">Standard-Modell</option>
-    </select>
-    
-    <button class="save-btn" onclick="saveSettings()">Einstellungen speichern</button>
 
-    <label style="margin-top:20px;">Arbeitsverzeichnis</label>
+    <label id="apiKeyLabel">API Key</label>
+    <input type="password" id="apiKey" placeholder="API Key..." onchange="apiKeyChanged()">
+
+    <label>Modell <span id="modelLoading" class="loading-text" style="display:none;">(lädt...)</span></label>
+    <select id="modelSelect"><option value="">Standard</option></select>
+
+    <button class="save-btn" onclick="saveSettings()">💾 Einstellungen speichern</button>
+
+    <div class="section-title">Arbeitsbereich</div>
     <select id="dirPreset" onchange="updateDirectory()">
       <option value="/var/www/html">Webserver (/var/www/html)</option>
-      <option value="/home">Home-Ordner (/home)</option>
-      <option value="/root">Root-Ordner (/root)</option>
+      <option value="/home">Home (/home)</option>
+      <option value="/root">Root (/root)</option>
       <option value="/">System-Root (/)</option>
     </select>
     <input type="text" id="directory" value="/var/www/html" style="margin-top:6px;">
-    
-    <div class="root-mode-box">
+
+    <div class="websearch-box">
       <label>
-        <input type="checkbox" id="allowRoot" onchange="rootModeChanged()">
-        <strong>🔴 Root-Modus aktivieren</strong>
+        <input type="checkbox" id="enableWebSearch">
+        <strong>🌐 Web-Suche aktivieren</strong>
       </label>
       <small>
-        <strong>ACHTUNG!</strong> Ermöglicht:<br>
-        • apt install/update/upgrade<br>
-        • systemctl restart/stop<br>
-        • Dateien löschen (rm -rf)<br>
-        • System neustarten (reboot)<br>
-        Ohne Root-Modus: Nur Dateien erstellen/lesen.
+        ✅ <strong>100% kostenlos</strong> (DuckDuckGo)<br>
+        ✅ Kein API-Key nötig<br>
+        ✅ Agent sucht automatisch im Internet<br>
+        ✅ Suchergebnisse → direkt an AI gesendet
       </small>
     </div>
 
-    <hr style="border:0; border-top:1px solid var(--border); margin: 20px 0 10px 0;">
-    <button onclick="updateSystem()" style="width:100%; background:#222; color:var(--green); border:1px solid var(--green); border-radius:6px; padding:8px; font-size:0.8rem; cursor:pointer; font-weight:bold;">♻️ System updaten</button>
+    <div class="root-mode-box">
+      <label>
+        <input type="checkbox" id="allowRoot" onchange="rootModeChanged()">
+        <strong>🔴 Root-Modus</strong>
+      </label>
+      <small>
+        <strong>⚠️ ACHTUNG:</strong> Volle System-Kontrolle!<br>
+        apt install/update, systemctl, reboot...
+      </small>
+    </div>
+
+    <hr style="border:0;border-top:1px solid var(--border);margin:16px 0 8px;">
+    <button onclick="updateSystem()" style="width:100%;background:#222;color:var(--green);border:1px solid var(--green);border-radius:6px;padding:8px;font-size:0.78rem;cursor:pointer;font-weight:bold;">♻️ System updaten</button>
   </div>
 </div>
 
 <script>
-  let sessionId = null;
+  let sessionId   = null;
   let currentChatId = null;
   let ws;
-  let allApiKeys = {}; // Speichert alle Keys lokal
+  let allApiKeys  = {};
+  let searchBoxOpen = false;
 
+  // ====== UI HELPERS ======
   function updateDirectory() {
-    const v = document.getElementById('dirPreset').value;
-    document.getElementById('directory').value = v;
+    document.getElementById('directory').value = document.getElementById('dirPreset').value;
+  }
+
+  function toggleSearchBox() {
+    searchBoxOpen = !searchBoxOpen;
+    document.getElementById('searchBox').classList.toggle('visible', searchBoxOpen);
+    document.getElementById('btnWebSearch').classList.toggle('active', searchBoxOpen);
+    if (searchBoxOpen) document.getElementById('searchQuery').focus();
+  }
+
+  async function doDirectSearch() {
+    const q = document.getElementById('searchQuery').value.trim();
+    if (!q) return;
+    addMsg('user', '🔍 Suche: ' + q);
+    document.getElementById('searchQuery').value = '';
+    toggleSearchBox();
+
+    // Suchanfrage direkt an den laufenden Chat senden
+    const prompt = `Suche im Internet nach: "${q}" und gib mir eine Zusammenfassung der Ergebnisse.`;
+    document.getElementById('promptInput').value = prompt;
+    await sendPrompt();
   }
 
   function rootModeChanged() {
     const checked = document.getElementById('allowRoot').checked;
-    if (checked && !confirm("⚠️ WARNUNG!\n\nRoot-Modus gibt dem Agent VOLLE System-Kontrolle!\n\nEr kann:\n- Programme installieren\n- System neustarten\n- Dateien löschen\n- Services steuern\n\nNur aktivieren wenn du dem Agent vertraust!\n\nFortfahren?")) {
+    if (checked && !confirm('⚠️ WARNUNG!\n\nRoot-Modus gibt dem Agent VOLLE System-Kontrolle!\n\nFortfahren?')) {
       document.getElementById('allowRoot').checked = false;
     }
   }
@@ -202,14 +250,10 @@
     const h = document.getElementById('chatHistory');
     const d = document.createElement('div');
     d.className = `msg ${sender}`;
-    d.innerText = text;
+    d.innerText  = text;
     h.appendChild(d);
     h.scrollTop = h.scrollHeight;
-    
-    // Speichere in aktuellen Chat
-    if (currentChatId) {
-      saveMessageToChat(currentChatId, { sender, text, timestamp: Date.now() });
-    }
+    if (currentChatId) saveMessageToChat(currentChatId, { sender, text, timestamp: Date.now() });
   }
 
   function addLog(text) {
@@ -221,6 +265,7 @@
     c.scrollTop = c.scrollHeight;
   }
 
+  // ====== WEBSOCKET ======
   function connectWS() {
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
     ws = new WebSocket(`${proto}://${location.host}`);
@@ -238,83 +283,64 @@
     window.location.href = '/';
   }
 
+  // ====== EINSTELLUNGEN ======
+  function updateApiKeyPlaceholder() {
+    const p = document.getElementById('provider').value;
+    const ki = document.getElementById('apiKey');
+    const kl = document.getElementById('apiKeyLabel');
+    if (p === 'ollama') {
+      ki.placeholder = 'Nicht nötig für lokales Ollama';
+      kl.innerText   = 'API Key (bei Ollama nicht nötig)';
+    } else if (p === 'ollama-online') {
+      ki.placeholder = 'http://server:11434';
+      kl.innerText   = 'Ollama Server URL';
+    } else {
+      ki.placeholder = 'API Key eingeben...';
+      kl.innerText   = 'API Key (verschlüsselt gespeichert)';
+    }
+  }
+
   async function loadSettings() {
-    const res = await fetch('/api/user/settings');
-    if(res.ok) {
+    try {
+      const res = await fetch('/api/user/settings');
+      if (!res.ok) return;
       const data = await res.json();
       allApiKeys = data.apiKeys || {};
-      
       document.getElementById('provider').value = data.provider || 'groq';
-      document.getElementById('apiKey').value = data.apiKey || '';
-      
+      document.getElementById('apiKey').value   = data.apiKey || '';
       updateApiKeyPlaceholder();
-      
-      // Ollama braucht keinen Key (oder benutzt custom URL)
-      if (data.provider === 'ollama' || data.apiKey) {
-          await loadModels();
-      }
-      
+      if (data.provider === 'ollama' || data.apiKey) await loadModels();
       if (data.model) document.getElementById('modelSelect').value = data.model;
-    }
+    } catch(e) { console.error('loadSettings:', e); }
   }
   loadSettings();
 
-  function updateApiKeyPlaceholder() {
-      const p = document.getElementById('provider').value;
-      const keyInput = document.getElementById('apiKey');
-      const keyLabel = document.getElementById('apiKeyLabel');
-      
-      if (p === 'ollama') {
-          keyInput.placeholder = "Nicht benötigt für lokalen Ollama";
-          keyLabel.innerText = "API Key (für lokales Ollama nicht nötig)";
-      } else if (p === 'ollama-online') {
-          keyInput.placeholder = "URL eingeben (z.B. http://server:11434)";
-          keyLabel.innerText = "Ollama URL";
-      } else {
-          keyInput.placeholder = "API Key eingeben...";
-          keyLabel.innerText = "API Key (wird verschlüsselt)";
-      }
-  }
-
   function providerChanged() {
-    const provider = document.getElementById('provider').value;
-    const keyInput = document.getElementById('apiKey');
-    
-    // Setze den gespeicherten Key für diesen Provider ins Feld
-    keyInput.value = allApiKeys[provider] || '';
-    
+    const p  = document.getElementById('provider').value;
+    document.getElementById('apiKey').value = allApiKeys[p] || '';
     updateApiKeyPlaceholder();
-    
-    if (keyInput.value || provider === 'ollama') {
-        loadModels();
-    } else {
-        document.getElementById('modelSelect').innerHTML = '<option value="">Standard-Modell</option>';
-    }
+    const k = document.getElementById('apiKey').value;
+    if (k || p === 'ollama') loadModels();
+    else document.getElementById('modelSelect').innerHTML = '<option value="">Standard</option>';
   }
 
   function apiKeyChanged() {
-    const provider = document.getElementById('provider').value;
-    const apiKey = document.getElementById('apiKey').value.trim();
-    
-    // Aktualisiere das lokale Objekt sofort
-    allApiKeys[provider] = apiKey;
-    
-    if (apiKey || provider === 'ollama') {
-        loadModels();
-    }
+    const p = document.getElementById('provider').value;
+    const k = document.getElementById('apiKey').value.trim();
+    allApiKeys[p] = k;
+    if (k || p === 'ollama') loadModels();
   }
 
   async function loadModels() {
     const provider = document.getElementById('provider').value;
     let apiKey = document.getElementById('apiKey').value.trim();
-    
     if (!apiKey && provider !== 'ollama') return;
-    if (provider === 'ollama') apiKey = 'local'; // Dummy-Key damit Backend nicht meckert
+    if (provider === 'ollama') apiKey = 'local';
 
     const loading = document.getElementById('modelLoading');
-    const select = document.getElementById('modelSelect');
+    const select  = document.getElementById('modelSelect');
     loading.style.display = 'inline';
-    select.innerHTML = '<option value="">Lädt...</option>';
+    select.innerHTML = '<option>Lädt...</option>';
 
     try {
       const res = await fetch('/api/models', {
@@ -322,221 +348,160 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ provider, apiKey })
       });
-      
       if (res.ok) {
         const data = await res.json();
-        select.innerHTML = '<option value="">Standard-Modell</option>';
+        select.innerHTML = '<option value="">Standard</option>';
         data.models.forEach(m => {
-          const opt = document.createElement('option');
-          opt.value = m.id;
-          opt.innerText = m.name || m.id;
-          if (m.free) opt.innerText += ' (KOSTENLOS)';
-          select.appendChild(opt);
+          const o = document.createElement('option');
+          o.value = m.id;
+          o.innerText = m.name || m.id;
+          if (m.free) o.innerText += ' 🆓';
+          select.appendChild(o);
         });
-      } else {
-        select.innerHTML = '<option value="">Fehler</option>';
-      }
-    } catch(e) {
-      select.innerHTML = '<option value="">Fehler</option>';
-    }
+      } else { select.innerHTML = '<option>Fehler</option>'; }
+    } catch(e) { select.innerHTML = '<option>Fehler</option>'; }
     loading.style.display = 'none';
   }
 
   async function saveSettings() {
     const provider = document.getElementById('provider').value;
-    const apiKey = document.getElementById('apiKey').value.trim();
-    const model = document.getElementById('modelSelect').value;
-    
-    // Lokales Objekt auch nochmal aktualisieren
+    const apiKey   = document.getElementById('apiKey').value.trim();
+    const model    = document.getElementById('modelSelect').value;
     allApiKeys[provider] = apiKey;
-    
     try {
       const res = await fetch('/api/user/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ provider, apiKey, model })
       });
-      
-      if (res.ok) {
-        alert('✔️ Gespeichert!');
-      } else {
-        const err = await res.json();
-        alert('❌ ' + (err.error || 'Fehler'));
-      }
-    } catch(e) {
-      alert('❌ ' + e.message);
-    }
+      if (res.ok) alert('✔️ Gespeichert!');
+      else { const e = await res.json(); alert('❌ ' + (e.error || 'Fehler')); }
+    } catch(e) { alert('❌ ' + e.message); }
   }
 
-  // === CHAT-VERWALTUNG ===
-  
+  // ====== CHAT-VERWALTUNG ======
   async function loadChatList() {
     try {
       const res = await fetch('/api/chats');
       if (!res.ok) return;
-      
       const data = await res.json();
       const list = document.getElementById('chatList');
       list.innerHTML = '';
-      
-      if (data.chats.length === 0) {
-        list.innerHTML = '<div style="color:#666; font-size:0.8rem; text-align:center; padding:20px;">Keine Chats vorhanden</div>';
+      if (!data.chats.length) {
+        list.innerHTML = '<div style="color:#666;font-size:0.78rem;text-align:center;padding:18px;">Keine Chats</div>';
         return;
       }
-      
-      data.chats.forEach(chat => {
+      data.chats.forEach(c => {
         const item = document.createElement('div');
-        item.className = 'chat-item' + (chat.id === currentChatId ? ' active' : '');
-        item.innerHTML = `
-          <div class="chat-item-title">${chat.title}</div>
-          <button class="chat-item-delete" onclick="deleteChat(${chat.id}, event)">×</button>
-        `;
-        item.onclick = (e) => {
-          if (e.target.classList.contains('chat-item-delete')) return;
-          loadChat(chat.id);
-        };
+        item.className = 'chat-item' + (c.id === currentChatId ? ' active' : '');
+        item.innerHTML = `<div class="chat-item-title">${c.title}</div><button class="chat-item-delete" onclick="deleteChat(${c.id},event)">×</button>`;
+        item.onclick = (e) => { if (!e.target.classList.contains('chat-item-delete')) loadChat(c.id); };
         list.appendChild(item);
       });
-    } catch(e) {
-      console.error('Load-Chat-List-Error:', e);
-    }
+    } catch(e) { console.error(e); }
   }
-  
+
   async function createNewChat() {
     try {
-      const title = 'Neuer Chat ' + new Date().toLocaleTimeString('de-DE');
       const res = await fetch('/api/chats/new', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          title, 
-          message: { sender: 'ai', text: 'Hallo! Sag mir was ich tun soll.\n\n💡 Tipp: Ich arbeite automatisch an deiner Aufgabe und stoppe wenn fertig!', timestamp: Date.now() }
+        body: JSON.stringify({
+          title: 'Neuer Chat ' + new Date().toLocaleTimeString('de-DE'),
+          message: { sender: 'ai', text: 'Hallo! Sag mir was ich tun soll.\n\n💡 Tipp: Aktiviere 🌐 Web-Suche für aktuelle Infos!', timestamp: Date.now() }
         })
       });
-      
       if (res.ok) {
-        const data = await res.json();
-        currentChatId = data.chatId;
-        sessionId = null; // Reset Agent-Session
+        const d = await res.json();
+        currentChatId = d.chatId;
+        sessionId = null;
         await loadChatList();
-        await loadChat(data.chatId);
+        await loadChat(d.chatId);
       }
-    } catch(e) {
-      console.error('Create-Chat-Error:', e);
-      alert('❌ Fehler: ' + e.message);
-    }
+    } catch(e) { alert('❌ ' + e.message); }
   }
-  
+
   async function loadChat(chatId) {
     try {
       const res = await fetch(`/api/chats/${chatId}`);
       if (!res.ok) return;
-      
-      const data = await res.json();
+      const d = await res.json();
       currentChatId = chatId;
-      sessionId = null; // Reset Agent-Session
-      
-      // Chat-Historie anzeigen
-      const history = document.getElementById('chatHistory');
-      history.innerHTML = '';
-      
-      data.chat.messages.forEach(msg => {
-        const d = document.createElement('div');
-        d.className = `msg ${msg.sender}`;
-        d.innerText = msg.text;
-        history.appendChild(d);
+      sessionId = null;
+      const h = document.getElementById('chatHistory');
+      h.innerHTML = '';
+      d.chat.messages.forEach(m => {
+        const el = document.createElement('div');
+        el.className = `msg ${m.sender}`;
+        el.innerText = m.text;
+        h.appendChild(el);
       });
-      
-      history.scrollTop = history.scrollHeight;
-      
-      // Chat-Liste aktualisieren (Active State)
+      h.scrollTop = h.scrollHeight;
       loadChatList();
-    } catch(e) {
-      console.error('Load-Chat-Error:', e);
-    }
+    } catch(e) { console.error(e); }
   }
-  
-  async function saveMessageToChat(chatId, message) {
+
+  async function saveMessageToChat(chatId, msg) {
     try {
       await fetch(`/api/chats/${chatId}/message`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message })
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: msg })
       });
-    } catch(e) {
-      console.error('Save-Message-Error:', e);
-    }
+    } catch(e) {}
   }
-  
+
   async function deleteChat(chatId, event) {
     event.stopPropagation();
-    
-    if (!confirm('Chat wirklich löschen?')) return;
-    
+    if (!confirm('Chat löschen?')) return;
     try {
-      const res = await fetch(`/api/chats/${chatId}`, { method: 'DELETE' });
-      if (res.ok) {
-        if (currentChatId === chatId) {
-          currentChatId = null;
-          sessionId = null;
-          document.getElementById('chatHistory').innerHTML = '<div class="msg ai">Wähle einen Chat oder erstelle einen neuen.</div>';
-        }
-        loadChatList();
+      await fetch(`/api/chats/${chatId}`, { method: 'DELETE' });
+      if (currentChatId === chatId) {
+        currentChatId = null; sessionId = null;
+        document.getElementById('chatHistory').innerHTML = '<div class="msg ai">Wähle oder erstelle einen Chat.</div>';
       }
-    } catch(e) {
-      console.error('Delete-Chat-Error:', e);
-    }
+      loadChatList();
+    } catch(e) {}
   }
-  
+
   async function deleteAllChats() {
-    if (!confirm('WIRKLICH ALLE Chats löschen?\n\nDies kann nicht rückgängig gemacht werden!')) return;
-    
+    if (!confirm('ALLE Chats löschen?')) return;
     try {
-      const res = await fetch('/api/chats', { method: 'DELETE' });
-      if (res.ok) {
-        currentChatId = null;
-        sessionId = null;
-        document.getElementById('chatHistory').innerHTML = '<div class="msg ai">Alle Chats gelöscht. Erstelle einen neuen Chat!</div>';
-        loadChatList();
-      }
-    } catch(e) {
-      console.error('Delete-All-Error:', e);
-    }
+      await fetch('/api/chats', { method: 'DELETE' });
+      currentChatId = null; sessionId = null;
+      document.getElementById('chatHistory').innerHTML = '<div class="msg ai">Alle gelöscht. Erstelle einen neuen Chat!</div>';
+      loadChatList();
+    } catch(e) {}
   }
-  
-  // Beim Start: Chats laden
+
   loadChatList();
 
+  // ====== SENDEN ======
   async function sendPrompt() {
-    const provider    = document.getElementById('provider').value;
-    const apiKey      = document.getElementById('apiKey').value.trim();
-    const model       = document.getElementById('modelSelect').value;
-    const directory   = document.getElementById('directory').value.trim();
-    const prompt      = document.getElementById('promptInput').value.trim();
-    const contextPath = document.getElementById('contextPath').value.trim();
-    const allowRoot   = document.getElementById('allowRoot').checked;
+    const provider      = document.getElementById('provider').value;
+    const apiKey        = document.getElementById('apiKey').value.trim();
+    const model         = document.getElementById('modelSelect').value;
+    const directory     = document.getElementById('directory').value.trim();
+    const prompt        = document.getElementById('promptInput').value.trim();
+    const contextPath   = document.getElementById('contextPath').value.trim();
+    const allowRoot     = document.getElementById('allowRoot').checked;
+    const enableWebSearch = document.getElementById('enableWebSearch').checked;
 
-    if(!prompt) return;
-    if(!apiKey && !sessionId && provider !== 'ollama') { alert("⚠️ API Key fehlt!"); return; }
-    
-    // Wenn kein Chat aktiv: Erstelle neuen Chat
-    if (!currentChatId) {
-      await createNewChat();
-    }
+    if (!prompt) return;
+    if (!apiKey && !sessionId && provider !== 'ollama') { alert('⚠️ API Key fehlt!'); return; }
+    if (!currentChatId) await createNewChat();
 
     addMsg('user', prompt);
-    
-    document.getElementById('promptInput').value = '';
-    document.getElementById('contextPath').value = '';
+    document.getElementById('promptInput').value  = '';
+    document.getElementById('contextPath').value  = '';
 
-    if(!sessionId) {
+    if (!sessionId) {
       const res = await fetch('/api/start', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider, apiKey, model, directory, prompt, contextPath, allowRoot })
+        body: JSON.stringify({ provider, apiKey, model, directory, prompt, contextPath, allowRoot, enableWebSearch })
       });
-      if(res.status === 401) { alert("Session abgelaufen!"); window.location.href='/'; return; }
-      const data = await res.json();
-      sessionId = data.sessionId;
+      if (res.status === 401) { alert('Session abgelaufen!'); window.location.href = '/'; return; }
+      const d = await res.json();
+      sessionId = d.sessionId;
     } else {
       await fetch('/api/chat', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -546,18 +511,13 @@
   }
 
   async function updateSystem() {
-    if(!confirm("🔄 Updaten?")) return;
-    addLog("Suche Updates...");
+    if (!confirm('🔄 Updaten?')) return;
+    addLog('Suche Updates...');
     const res = await fetch('/api/update', { method: 'POST' });
-    if(res.status === 401) { alert("Session abgelaufen!"); window.location.href='/'; return; }
-    const data = await res.json();
-    if(data.success) {
-      addLog(`✔️ ${data.message}`);
-      alert("✔️ Update erfolgreich!");
-    } else {
-      addLog(`❌ ${data.error}`);
-      alert(`❌ ${data.error}`);
-    }
+    if (res.status === 401) { alert('Session abgelaufen!'); window.location.href = '/'; return; }
+    const d = await res.json();
+    if (d.success) { addLog(`✔️ ${d.message}`); alert('✔️ Update!'); }
+    else           { addLog(`❌ ${d.error}`);   alert(`❌ ${d.error}`); }
   }
 </script>
 </body>
