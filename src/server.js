@@ -1,4 +1,4 @@
-// Feature: Chat-Verwaltung mit SQLite
+// Feature: Chat-Verwaltung mit SQLite & Multi-Provider API-Keys
 const express    = require('express');
 const bodyParser = require('body-parser');
 const http       = require('http');
@@ -247,30 +247,40 @@ function createServer() {
 
     app.post('/api/user/settings', checkSession, (req, res) => {
         try {
-            console.log('POST /api/user/settings - Body:', JSON.stringify(req.body));
-            
             const { apiKey, provider, model } = req.body;
             const username = req.user.username;
             
-            if (apiKey === undefined && provider === undefined && model === undefined) {
-                console.log('400: Keine Daten im Request');
-                return res.status(400).json({ error: 'Keine Daten gesendet' });
+            if (!userSettings[username]) {
+                userSettings[username] = {
+                    apiKeys: {}, // Neu: Speichert API Keys pro Provider
+                    provider: 'groq',
+                    model: ''
+                };
             }
             
-            if (!userSettings[username]) {
-                userSettings[username] = {};
+            // Abwärtskompatibilität: Falls alter apiKey existiert, in apiKeys verschieben
+            if (userSettings[username].apiKey && !userSettings[username].apiKeys) {
+                userSettings[username].apiKeys = {};
+                userSettings[username].apiKeys[userSettings[username].provider || 'groq'] = userSettings[username].apiKey;
+                delete userSettings[username].apiKey; // Alten Key löschen
+            }
+            
+            if (!userSettings[username].apiKeys) {
+                userSettings[username].apiKeys = {};
+            }
+            
+            const currentProvider = provider || userSettings[username].provider || 'groq';
+            
+            if (provider !== undefined) {
+                userSettings[username].provider = provider;
             }
             
             if (apiKey !== undefined) {
                 if (apiKey === '') {
-                    userSettings[username].apiKey = '';
+                    userSettings[username].apiKeys[currentProvider] = '';
                 } else {
-                    userSettings[username].apiKey = encrypt(apiKey);
+                    userSettings[username].apiKeys[currentProvider] = encrypt(apiKey);
                 }
-            }
-            
-            if (provider !== undefined) {
-                userSettings[username].provider = provider || 'groq';
             }
             
             if (model !== undefined) {
@@ -278,8 +288,6 @@ function createServer() {
             }
             
             saveUserSettings();
-            console.log('Settings gespeichert für:', username);
-            
             return res.json({ success: true });
         } catch(e) {
             console.error('Settings-Save-Error:', e.message, e.stack);
@@ -292,9 +300,25 @@ function createServer() {
             const username = req.user.username;
             const settings = userSettings[username] || {};
             
+            // Abwärtskompatibilität + Multi-Provider Formatierung
+            let apiKeysDecrypted = {};
+            
+            if (settings.apiKeys) {
+                for (const [prov, key] of Object.entries(settings.apiKeys)) {
+                    apiKeysDecrypted[prov] = key ? decrypt(key) : '';
+                }
+            } else if (settings.apiKey) {
+                // Alter Format: Nur ein Key für den aktuellen Provider
+                const prov = settings.provider || 'groq';
+                apiKeysDecrypted[prov] = settings.apiKey ? decrypt(settings.apiKey) : '';
+            }
+            
+            const currentProvider = settings.provider || 'groq';
+            
             return res.json({
-                apiKey: settings.apiKey ? decrypt(settings.apiKey) : '',
-                provider: settings.provider || 'groq',
+                apiKeys: apiKeysDecrypted,
+                apiKey: apiKeysDecrypted[currentProvider] || '', // Fürs Frontend (aktueller Key)
+                provider: currentProvider,
                 model: settings.model || ''
             });
         } catch(e) {
