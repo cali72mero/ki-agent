@@ -3,76 +3,88 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KI-Agent Interface</title>
+  <title>KI-Agent</title>
   <style>
-    :root { --bg: #0d0d0d; --surface: #1a1a1a; --border: #2d2d2d; --accent: #00d4ff; --green: #00ff88; --red: #ff4545; --orange: #ff9500; --text: #e0e0e0; --muted: #888; }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; }
+    :root{--bg:#0d0d0d;--surface:#1a1a1a;--border:#2d2d2d;--accent:#00d4ff;--green:#00ff88;--red:#ff4545;--text:#e0e0e0;--muted:#888;}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;}
 
-    header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 20px; display: flex; align-items: center; gap: 12px; }
-    header h1 { font-size: 1rem; color: var(--accent); }
-    .header-btn { background: #222; color: #fff; border: 1px solid #444; border-radius: 4px; padding: 4px 10px; cursor: pointer; font-size: 0.8rem; }
-    .logout-btn { margin-left: auto; background: var(--red); color: #fff; border: none; border-radius: 6px; padding: 6px 14px; cursor: pointer; font-size: 0.8rem; }
+    header{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;gap:12px;}
+    header h1{font-size:1rem;color:var(--accent);}
+    .header-btn{background:#222;color:#fff;border:1px solid #444;border-radius:4px;padding:4px 10px;cursor:pointer;font-size:0.8rem;}
+    .logout-btn{margin-left:auto;background:var(--red);color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:0.8rem;}
 
-    .layout { display: flex; flex: 1; overflow: hidden; }
+    .layout{display:flex;flex:1;overflow:hidden;}
 
-    /* CHAT-LISTE */
-    .chat-list-sidebar { width: 260px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
-    .chat-list-header { padding: 14px; border-bottom: 1px solid var(--border); }
-    .new-chat-btn { width: 100%; background: var(--accent); color: #000; border: none; border-radius: 6px; padding: 9px; font-weight: bold; cursor: pointer; font-size: 0.875rem; }
-    .chat-list { flex: 1; overflow-y: auto; padding: 8px; }
-    .chat-item { background: #1a1a1a; border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; margin-bottom: 5px; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: 0.2s; }
-    .chat-item:hover { background: #222; }
-    .chat-item.active { background: #2a2a2a; border-color: var(--accent); }
-    .chat-item-title { flex: 1; font-size: 0.83rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .chat-item-delete { background: transparent; border: none; color: var(--red); cursor: pointer; font-size: 1.1rem; opacity: 0; }
-    .chat-item:hover .chat-item-delete { opacity: 1; }
-    .chat-list-footer { padding: 10px; border-top: 1px solid var(--border); }
-    .delete-all-btn { width: 100%; background: #2a0000; color: var(--red); border: 1px solid var(--red); border-radius: 6px; padding: 7px; font-size: 0.78rem; cursor: pointer; }
+    /* SIDEBAR LINKS */
+    .chat-list-sidebar{width:260px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;}
+    .chat-list-header{padding:14px;border-bottom:1px solid var(--border);}
+    .new-chat-btn{width:100%;background:var(--accent);color:#000;border:none;border-radius:6px;padding:9px;font-weight:bold;cursor:pointer;font-size:.875rem;}
+    .chat-list{flex:1;overflow-y:auto;padding:8px;}
+    .chat-item{background:#1a1a1a;border:1px solid var(--border);border-radius:8px;padding:9px 12px;margin-bottom:5px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:.2s;}
+    .chat-item:hover{background:#222;}
+    .chat-item.active{background:#2a2a2a;border-color:var(--accent);}
+    .chat-item-title{flex:1;font-size:.83rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .chat-item-delete{background:transparent;border:none;color:var(--red);cursor:pointer;font-size:1.1rem;opacity:0;}
+    .chat-item:hover .chat-item-delete{opacity:1;}
+    .chat-list-footer{padding:10px;border-top:1px solid var(--border);}
+    .delete-all-btn{width:100%;background:#2a0000;color:var(--red);border:1px solid var(--red);border-radius:6px;padding:7px;font-size:.78rem;cursor:pointer;}
 
     /* HAUPTBEREICH */
-    .main-content { flex: 1; display: flex; flex-direction: column; background: var(--bg); position: relative; }
-    .chat-history { flex: 1; padding: 18px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
-    .msg { max-width: 80%; padding: 11px 15px; border-radius: 12px; font-size: 0.93rem; line-height: 1.55; white-space: pre-wrap; }
-    .msg.user { background: var(--accent); color: #000; align-self: flex-end; border-bottom-right-radius: 2px; }
-    .msg.ai   { background: var(--surface); border: 1px solid var(--border); align-self: flex-start; border-bottom-left-radius: 2px; }
-    .msg.search-result { background: #0a2a1a; border: 1px solid var(--green); color: var(--green); align-self: flex-start; font-size: 0.82rem; font-family: monospace; }
+    .main-content{flex:1;display:flex;flex-direction:column;background:var(--bg);position:relative;}
+    .chat-history{flex:1;padding:18px;overflow-y:auto;display:flex;flex-direction:column;gap:14px;}
+    .msg{max-width:80%;padding:11px 15px;border-radius:12px;font-size:.93rem;line-height:1.55;white-space:pre-wrap;}
+    .msg.user{background:var(--accent);color:#000;align-self:flex-end;border-bottom-right-radius:2px;}
+    .msg.ai{background:var(--surface);border:1px solid var(--border);align-self:flex-start;border-bottom-left-radius:2px;}
 
-    /* INPUT BEREICH */
-    .chat-input-area { padding: 14px; background: var(--surface); border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
-    .input-toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-    .toolbar-btn { background: #222; border: 1px solid #444; color: #fff; border-radius: 6px; padding: 5px 10px; font-size: 0.78rem; cursor: pointer; display: flex; align-items: center; gap: 4px; }
-    .toolbar-btn:hover { border-color: var(--accent); color: var(--accent); }
-    .toolbar-btn.active { background: #0a2020; border-color: var(--green); color: var(--green); }
-    .search-input-box { display: none; gap: 6px; align-items: center; background: #0a1a0a; border: 1px solid var(--green); border-radius: 6px; padding: 6px 10px; }
-    .search-input-box.visible { display: flex; }
-    .search-input-box input { flex: 1; background: transparent; border: none; color: var(--green); font-size: 0.85rem; outline: none; font-family: monospace; }
-    .search-btn-go { background: var(--green); color: #000; border: none; border-radius: 4px; padding: 4px 10px; cursor: pointer; font-size: 0.8rem; font-weight: bold; }
-    .context-help { font-size: 0.7rem; color: var(--muted); }
-    .context-box { display: flex; gap: 8px; }
-    .context-box input { flex: 1; background: #222; border: 1px dashed var(--muted); border-radius: 6px; padding: 5px 10px; font-size: 0.8rem; color: #fff; }
-    .chat-input-row { display: flex; gap: 10px; }
-    .chat-input-row textarea { flex: 1; background: #111; border: 1px solid var(--border); border-radius: 8px; color: #fff; padding: 11px; min-height: 50px; resize: vertical; outline: none; font-size: 0.9rem; }
-    .btn-send { background: var(--accent); color: #000; border: none; border-radius: 8px; padding: 0 18px; font-weight: bold; cursor: pointer; font-size: 0.9rem; }
+    /* INPUT */
+    .chat-input-area{padding:14px;background:var(--surface);border-top:1px solid var(--border);display:flex;flex-direction:column;gap:8px;}
+    .input-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
 
-    /* KONFIGURATION */
-    .config-sidebar { width: 290px; background: var(--surface); border-left: 1px solid var(--border); padding: 18px; overflow-y: auto; }
-    .config-sidebar h3 { font-size: 0.88rem; color: var(--accent); margin-bottom: 10px; }
-    label { display: block; font-size: 0.78rem; color: var(--muted); margin: 11px 0 4px; }
-    input, select { width: 100%; background: #111; border: 1px solid var(--border); border-radius: 6px; color: #fff; padding: 7px 10px; font-size: 0.88rem; }
-    .root-mode-box { background: #ff45451a; border: 1px solid var(--red); padding: 11px; border-radius: 8px; margin-top: 10px; }
-    .root-mode-box label { margin: 0; display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text); }
-    .root-mode-box input[type="checkbox"] { width: auto; }
-    .root-mode-box small { display: block; color: var(--red); font-size: 0.72rem; margin-top: 6px; line-height: 1.4; }
-    .websearch-box { background: #00ff881a; border: 1px solid var(--green); padding: 11px; border-radius: 8px; margin-top: 10px; }
-    .websearch-box label { margin: 0; display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text); }
-    .websearch-box input[type="checkbox"] { width: auto; }
-    .websearch-box small { display: block; color: var(--green); font-size: 0.72rem; margin-top: 6px; line-height: 1.4; }
-    .save-btn { width: 100%; background: var(--accent); color: #000; border: none; border-radius: 6px; padding: 8px; font-size: 0.8rem; font-weight: bold; cursor: pointer; margin-top: 10px; }
-    .loading-text { color: var(--muted); font-size: 0.72rem; }
-    .console-overlay { position: absolute; top: 0; right: 0; width: 340px; bottom: 0; background: #050505ed; border-left: 1px solid var(--border); padding: 10px; overflow-y: auto; font-family: monospace; font-size: 0.73rem; display: none; z-index: 10; }
-    .log-info { color: #aaa; margin-bottom: 3px; }
-    .section-title { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin: 14px 0 4px; border-top: 1px solid var(--border); padding-top: 10px; }
+    /* Web-Suche Toolbar-Badge */
+    .wsearch-badge{
+      display:none;background:#0a2a1a;border:1px solid var(--green);
+      color:var(--green);border-radius:6px;padding:4px 10px;
+      font-size:.78rem;align-items:center;gap:6px;
+    }
+    .wsearch-badge.visible{display:flex;}
+    .wsearch-badge-close{background:none;border:none;color:var(--green);cursor:pointer;font-size:1rem;line-height:1;}
+
+    .toolbar-btn{background:#222;border:1px solid #444;color:#fff;border-radius:6px;padding:5px 10px;font-size:.78rem;cursor:pointer;}
+    .toolbar-btn:hover{border-color:var(--accent);color:var(--accent);}
+    .toolbar-btn.active{background:#0a2020;border-color:var(--green);color:var(--green);}
+    .hint{font-size:.7rem;color:var(--muted);}
+    .context-box{display:flex;gap:8px;}
+    .context-box input{flex:1;background:#222;border:1px dashed var(--muted);border-radius:6px;padding:5px 10px;font-size:.8rem;color:#fff;}
+    .chat-input-row{display:flex;gap:10px;}
+    .chat-input-row textarea{
+      flex:1;background:#111;border:1px solid var(--border);border-radius:8px;
+      color:#fff;padding:11px;min-height:52px;resize:vertical;outline:none;font-size:.9rem;
+      transition:border-color .2s;
+    }
+    .chat-input-row textarea.search-mode{border-color:var(--green);}
+    .btn-send{background:var(--accent);color:#000;border:none;border-radius:8px;padding:0 18px;font-weight:bold;cursor:pointer;font-size:.9rem;}
+    .btn-send.searching{background:var(--green);animation:pulse .8s infinite;}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+
+    /* SIDEBAR RECHTS */
+    .config-sidebar{width:290px;background:var(--surface);border-left:1px solid var(--border);padding:18px;overflow-y:auto;}
+    .config-sidebar h3{font-size:.88rem;color:var(--accent);margin-bottom:10px;}
+    label{display:block;font-size:.78rem;color:var(--muted);margin:11px 0 4px;}
+    input,select{width:100%;background:#111;border:1px solid var(--border);border-radius:6px;color:#fff;padding:7px 10px;font-size:.88rem;}
+    .save-btn{width:100%;background:var(--accent);color:#000;border:none;border-radius:6px;padding:8px;font-size:.8rem;font-weight:bold;cursor:pointer;margin-top:10px;}
+    .loading-text{color:var(--muted);font-size:.72rem;}
+    .section-title{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:14px 0 4px;border-top:1px solid var(--border);padding-top:10px;}
+    .feature-box{padding:11px;border-radius:8px;margin-top:10px;}
+    .feature-box label{margin:0;display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--text);font-size:.85rem;}
+    .feature-box input[type=checkbox]{width:auto;}
+    .feature-box small{display:block;font-size:.72rem;margin-top:6px;line-height:1.5;}
+    .box-green{background:#00ff881a;border:1px solid var(--green);}
+    .box-green small{color:var(--green);}
+    .box-red{background:#ff45451a;border:1px solid var(--red);}
+    .box-red small{color:var(--red);}
+    .console-overlay{position:absolute;top:0;right:0;width:340px;bottom:0;background:#050505ed;border-left:1px solid var(--border);padding:10px;overflow-y:auto;font-family:monospace;font-size:.73rem;display:none;z-index:10;}
+    .log-info{color:#aaa;margin-bottom:3px;}
   </style>
 </head>
 <body>
@@ -86,13 +98,9 @@
 <div class="layout">
   <!-- CHAT-LISTE -->
   <div class="chat-list-sidebar">
-    <div class="chat-list-header">
-      <button class="new-chat-btn" onclick="createNewChat()">➕ Neuer Chat</button>
-    </div>
+    <div class="chat-list-header"><button class="new-chat-btn" onclick="createNewChat()">➕ Neuer Chat</button></div>
     <div class="chat-list" id="chatList"></div>
-    <div class="chat-list-footer">
-      <button class="delete-all-btn" onclick="deleteAllChats()">🗑️ Alle Chats löschen</button>
-    </div>
+    <div class="chat-list-footer"><button class="delete-all-btn" onclick="deleteAllChats()">🗑️ Alle löschen</button></div>
   </div>
 
   <!-- HAUPTBEREICH -->
@@ -100,50 +108,48 @@
     <div class="chat-history" id="chatHistory">
       <div class="msg ai">Hallo! Sag mir was ich tun soll.
 
-💡 Tipp: Aktiviere 🌐 Web-Suche für aktuelle Informationen aus dem Internet!</div>
+💡 Tipp: Aktiviere 🌐 Web-Suche – dann such ich automatisch im Internet!</div>
     </div>
 
     <div class="chat-input-area">
-      <!-- Toolbar -->
+      <!-- Toolbar: Web-Suche Button + Suchmode-Badge -->
       <div class="input-toolbar">
-        <button class="toolbar-btn" id="btnWebSearch" onclick="toggleSearchBox()" title="Web-Suche direkt im Chat starten">
+        <button class="toolbar-btn" id="btnSearch" onclick="toggleSearchMode()" title="Nächste Nachricht als Web-Suche senden">
           🔍 Web-Suche
         </button>
-        <span style="font-size:0.72rem; color:var(--muted);">Strg+Enter = Senden</span>
-      </div>
-
-      <!-- Direkte Suchbox -->
-      <div class="search-input-box" id="searchBox">
-        <span style="color:var(--green); font-size:0.8rem;">🔍</span>
-        <input type="text" id="searchQuery" placeholder="Suchbegriff eingeben..." onkeydown="if(event.key==='Enter') doDirectSearch()">
-        <button class="search-btn-go" onclick="doDirectSearch()">Suchen</button>
+        <!-- Badge erscheint wenn Suchmodus aktiv -->
+        <div class="wsearch-badge" id="searchBadge">
+          🌐 Suchmodus aktiv – Deine Nachricht wird zuerst gegoogelt
+          <button class="wsearch-badge-close" onclick="toggleSearchMode()" title="Abbrechen">×</button>
+        </div>
+        <span class="hint">Strg+Enter = Senden</span>
       </div>
 
       <!-- Kontext-Datei -->
-      <div class="context-help">📁 Datei/Ordner als Kontext (optional)</div>
+      <div class="hint">📁 Datei/Ordner als Kontext (optional)</div>
       <div class="context-box">
         <input type="text" id="contextPath" placeholder="z.B. /var/www/html/index.html">
       </div>
 
-      <!-- Eingabezeile -->
+      <!-- Haupteingabe -->
       <div class="chat-input-row">
         <textarea id="promptInput"
-          placeholder="z.B. 'Erstelle eine moderne Webseite'"
+          placeholder="z.B. 'Erkläre mir Quantum Computing' oder 'Erstelle eine Webseite'"
           onkeydown="if(event.ctrlKey&&event.key==='Enter'){sendPrompt();}"></textarea>
-        <button class="btn-send" onclick="sendPrompt()">Senden</button>
+        <button class="btn-send" id="btnSend" onclick="sendPrompt()">Senden</button>
       </div>
     </div>
 
     <div class="console-overlay" id="console"></div>
   </div>
 
-  <!-- KONFIGURATION -->
+  <!-- KONFIGURATION RECHTS -->
   <div class="config-sidebar">
     <h3>⚙️ Konfiguration</h3>
 
     <label>Provider</label>
     <select id="provider" onchange="providerChanged()">
-      <option value="groq">Groq (Kostenlos 🆓)</option>
+      <option value="groq">Groq 🆓</option>
       <option value="openai">OpenAI</option>
       <option value="claude">Claude (Anthropic)</option>
       <option value="gemini">Gemini (Google)</option>
@@ -156,89 +162,83 @@
       <option value="ollama-online">Ollama (Online/Custom)</option>
     </select>
 
-    <label id="apiKeyLabel">API Key</label>
+    <label id="apiKeyLabel">API Key (verschlüsselt)</label>
     <input type="password" id="apiKey" placeholder="API Key..." onchange="apiKeyChanged()">
 
     <label>Modell <span id="modelLoading" class="loading-text" style="display:none;">(lädt...)</span></label>
     <select id="modelSelect"><option value="">Standard</option></select>
 
-    <button class="save-btn" onclick="saveSettings()">💾 Einstellungen speichern</button>
+    <button class="save-btn" onclick="saveSettings()">💾 Speichern</button>
 
     <div class="section-title">Arbeitsbereich</div>
-    <select id="dirPreset" onchange="updateDirectory()">
-      <option value="/var/www/html">Webserver (/var/www/html)</option>
-      <option value="/home">Home (/home)</option>
-      <option value="/root">Root (/root)</option>
-      <option value="/">System-Root (/)</option>
+    <select id="dirPreset" onchange="document.getElementById('directory').value=this.value">
+      <option value="/var/www/html">Webserver</option>
+      <option value="/home">Home</option>
+      <option value="/root">Root</option>
+      <option value="/">System-Root</option>
     </select>
     <input type="text" id="directory" value="/var/www/html" style="margin-top:6px;">
 
-    <div class="websearch-box">
+    <!-- Web-Suche (Auto-Modus) -->
+    <div class="feature-box box-green">
       <label>
         <input type="checkbox" id="enableWebSearch">
-        <strong>🌐 Web-Suche aktivieren</strong>
+        <strong>🌐 Web-Suche (Auto)</strong>
       </label>
       <small>
-        ✅ <strong>100% kostenlos</strong> (DuckDuckGo)<br>
-        ✅ Kein API-Key nötig<br>
-        ✅ Agent sucht automatisch im Internet<br>
-        ✅ Suchergebnisse → direkt an AI gesendet
+        ✅ KI sucht <em>automatisch</em> wenn sie Infos braucht<br>
+        ✅ Kein API-Key, 100% kostenlos<br>
+        ✅ DuckDuckGo + SearXNG Fallback
       </small>
     </div>
 
-    <div class="root-mode-box">
+    <!-- Root-Modus -->
+    <div class="feature-box box-red">
       <label>
         <input type="checkbox" id="allowRoot" onchange="rootModeChanged()">
         <strong>🔴 Root-Modus</strong>
       </label>
-      <small>
-        <strong>⚠️ ACHTUNG:</strong> Volle System-Kontrolle!<br>
-        apt install/update, systemctl, reboot...
-      </small>
+      <small>⚠️ Volle System-Kontrolle: apt, systemctl, reboot...</small>
     </div>
 
     <hr style="border:0;border-top:1px solid var(--border);margin:16px 0 8px;">
-    <button onclick="updateSystem()" style="width:100%;background:#222;color:var(--green);border:1px solid var(--green);border-radius:6px;padding:8px;font-size:0.78rem;cursor:pointer;font-weight:bold;">♻️ System updaten</button>
+    <button onclick="updateSystem()" style="width:100%;background:#222;color:var(--green);border:1px solid var(--green);border-radius:6px;padding:8px;font-size:.78rem;cursor:pointer;font-weight:bold;">♻️ System updaten</button>
   </div>
 </div>
 
 <script>
-  let sessionId   = null;
+  let sessionId     = null;
   let currentChatId = null;
   let ws;
-  let allApiKeys  = {};
-  let searchBoxOpen = false;
+  let allApiKeys    = {};
+  // Suchmodus: wenn true → nächste Nachricht wird ZUERST gesucht, dann an KI
+  let searchMode    = false;
+  let isSearching   = false; // Verhindert Doppelklick während Suche läuft
 
-  // ====== UI HELPERS ======
-  function updateDirectory() {
-    document.getElementById('directory').value = document.getElementById('dirPreset').value;
-  }
+  // ====== SUCHMODUS TOGGLE ======
+  function toggleSearchMode() {
+    searchMode = !searchMode;
+    const btn    = document.getElementById('btnSearch');
+    const badge  = document.getElementById('searchBadge');
+    const ta     = document.getElementById('promptInput');
 
-  function toggleSearchBox() {
-    searchBoxOpen = !searchBoxOpen;
-    document.getElementById('searchBox').classList.toggle('visible', searchBoxOpen);
-    document.getElementById('btnWebSearch').classList.toggle('active', searchBoxOpen);
-    if (searchBoxOpen) document.getElementById('searchQuery').focus();
-  }
+    btn.classList.toggle('active', searchMode);
+    badge.classList.toggle('visible', searchMode);
+    ta.classList.toggle('search-mode', searchMode);
 
-  async function doDirectSearch() {
-    const q = document.getElementById('searchQuery').value.trim();
-    if (!q) return;
-    addMsg('user', '🔍 Suche: ' + q);
-    document.getElementById('searchQuery').value = '';
-    toggleSearchBox();
-
-    // Suchanfrage direkt an den laufenden Chat senden
-    const prompt = `Suche im Internet nach: "${q}" und gib mir eine Zusammenfassung der Ergebnisse.`;
-    document.getElementById('promptInput').value = prompt;
-    await sendPrompt();
-  }
-
-  function rootModeChanged() {
-    const checked = document.getElementById('allowRoot').checked;
-    if (checked && !confirm('⚠️ WARNUNG!\n\nRoot-Modus gibt dem Agent VOLLE System-Kontrolle!\n\nFortfahren?')) {
-      document.getElementById('allowRoot').checked = false;
+    if (searchMode) {
+      ta.placeholder = '🔍 Suchbegriff eingeben... (wird im Internet gesucht + an KI gesendet)';
+      ta.focus();
+    } else {
+      ta.placeholder = "z.B. 'Erkläre mir Quantum Computing' oder 'Erstelle eine Webseite'";
     }
+  }
+
+  // ====== ROOT-MODUS WARNUNG ======
+  function rootModeChanged() {
+    const c = document.getElementById('allowRoot').checked;
+    if (c && !confirm('⚠️ WARNUNG!\n\nRoot-Modus gibt dem Agent VOLLE System-Kontrolle!\n\nFortfahren?'))
+      document.getElementById('allowRoot').checked = false;
   }
 
   function toggleConsole() {
@@ -265,7 +265,6 @@
     c.scrollTop = c.scrollHeight;
   }
 
-  // ====== WEBSOCKET ======
   function connectWS() {
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
     ws = new WebSocket(`${proto}://${location.host}`);
@@ -285,29 +284,22 @@
 
   // ====== EINSTELLUNGEN ======
   function updateApiKeyPlaceholder() {
-    const p = document.getElementById('provider').value;
+    const p  = document.getElementById('provider').value;
     const ki = document.getElementById('apiKey');
     const kl = document.getElementById('apiKeyLabel');
-    if (p === 'ollama') {
-      ki.placeholder = 'Nicht nötig für lokales Ollama';
-      kl.innerText   = 'API Key (bei Ollama nicht nötig)';
-    } else if (p === 'ollama-online') {
-      ki.placeholder = 'http://server:11434';
-      kl.innerText   = 'Ollama Server URL';
-    } else {
-      ki.placeholder = 'API Key eingeben...';
-      kl.innerText   = 'API Key (verschlüsselt gespeichert)';
-    }
+    if (p === 'ollama')       { ki.placeholder = 'Nicht nötig'; kl.innerText = 'API Key (bei Ollama nicht nötig)'; }
+    else if (p === 'ollama-online') { ki.placeholder = 'http://server:11434'; kl.innerText = 'Ollama Server URL'; }
+    else                      { ki.placeholder = 'API Key eingeben...'; kl.innerText = 'API Key (verschlüsselt gespeichert)'; }
   }
 
   async function loadSettings() {
     try {
       const res = await fetch('/api/user/settings');
       if (!res.ok) return;
-      const data = await res.json();
-      allApiKeys = data.apiKeys || {};
+      const data   = await res.json();
+      allApiKeys   = data.apiKeys || {};
       document.getElementById('provider').value = data.provider || 'groq';
-      document.getElementById('apiKey').value   = data.apiKey || '';
+      document.getElementById('apiKey').value   = data.apiKey   || '';
       updateApiKeyPlaceholder();
       if (data.provider === 'ollama' || data.apiKey) await loadModels();
       if (data.model) document.getElementById('modelSelect').value = data.model;
@@ -316,7 +308,7 @@
   loadSettings();
 
   function providerChanged() {
-    const p  = document.getElementById('provider').value;
+    const p = document.getElementById('provider').value;
     document.getElementById('apiKey').value = allApiKeys[p] || '';
     updateApiKeyPlaceholder();
     const k = document.getElementById('apiKey').value;
@@ -333,7 +325,7 @@
 
   async function loadModels() {
     const provider = document.getElementById('provider').value;
-    let apiKey = document.getElementById('apiKey').value.trim();
+    let   apiKey   = document.getElementById('apiKey').value.trim();
     if (!apiKey && provider !== 'ollama') return;
     if (provider === 'ollama') apiKey = 'local';
 
@@ -341,24 +333,21 @@
     const select  = document.getElementById('modelSelect');
     loading.style.display = 'inline';
     select.innerHTML = '<option>Lädt...</option>';
-
     try {
       const res = await fetch('/api/models', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: {'Content-Type':'application/json'},
         body: JSON.stringify({ provider, apiKey })
       });
       if (res.ok) {
-        const data = await res.json();
+        const d = await res.json();
         select.innerHTML = '<option value="">Standard</option>';
-        data.models.forEach(m => {
+        d.models.forEach(m => {
           const o = document.createElement('option');
-          o.value = m.id;
-          o.innerText = m.name || m.id;
-          if (m.free) o.innerText += ' 🆓';
+          o.value   = m.id;
+          o.innerText = (m.name || m.id) + (m.free ? ' 🆓' : '');
           select.appendChild(o);
         });
-      } else { select.innerHTML = '<option>Fehler</option>'; }
+      } else select.innerHTML = '<option>Fehler</option>';
     } catch(e) { select.innerHTML = '<option>Fehler</option>'; }
     loading.style.display = 'none';
   }
@@ -370,8 +359,7 @@
     allApiKeys[provider] = apiKey;
     try {
       const res = await fetch('/api/user/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: {'Content-Type':'application/json'},
         body: JSON.stringify({ provider, apiKey, model })
       });
       if (res.ok) alert('✔️ Gespeichert!');
@@ -388,7 +376,7 @@
       const list = document.getElementById('chatList');
       list.innerHTML = '';
       if (!data.chats.length) {
-        list.innerHTML = '<div style="color:#666;font-size:0.78rem;text-align:center;padding:18px;">Keine Chats</div>';
+        list.innerHTML = '<div style="color:#666;font-size:.78rem;text-align:center;padding:18px;">Keine Chats</div>';
         return;
       }
       data.chats.forEach(c => {
@@ -404,19 +392,16 @@
   async function createNewChat() {
     try {
       const res = await fetch('/api/chats/new', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: {'Content-Type':'application/json'},
         body: JSON.stringify({
-          title: 'Neuer Chat ' + new Date().toLocaleTimeString('de-DE'),
-          message: { sender: 'ai', text: 'Hallo! Sag mir was ich tun soll.\n\n💡 Tipp: Aktiviere 🌐 Web-Suche für aktuelle Infos!', timestamp: Date.now() }
+          title: 'Chat ' + new Date().toLocaleTimeString('de-DE'),
+          message: { sender:'ai', text:'Hallo! Sag mir was ich tun soll.', timestamp: Date.now() }
         })
       });
       if (res.ok) {
         const d = await res.json();
-        currentChatId = d.chatId;
-        sessionId = null;
-        await loadChatList();
-        await loadChat(d.chatId);
+        currentChatId = d.chatId; sessionId = null;
+        await loadChatList(); await loadChat(d.chatId);
       }
     } catch(e) { alert('❌ ' + e.message); }
   }
@@ -426,8 +411,7 @@
       const res = await fetch(`/api/chats/${chatId}`);
       if (!res.ok) return;
       const d = await res.json();
-      currentChatId = chatId;
-      sessionId = null;
+      currentChatId = chatId; sessionId = null;
       const h = document.getElementById('chatHistory');
       h.innerHTML = '';
       d.chat.messages.forEach(m => {
@@ -444,7 +428,7 @@
   async function saveMessageToChat(chatId, msg) {
     try {
       await fetch(`/api/chats/${chatId}/message`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ message: msg })
       });
     } catch(e) {}
@@ -453,59 +437,103 @@
   async function deleteChat(chatId, event) {
     event.stopPropagation();
     if (!confirm('Chat löschen?')) return;
-    try {
-      await fetch(`/api/chats/${chatId}`, { method: 'DELETE' });
-      if (currentChatId === chatId) {
-        currentChatId = null; sessionId = null;
-        document.getElementById('chatHistory').innerHTML = '<div class="msg ai">Wähle oder erstelle einen Chat.</div>';
-      }
-      loadChatList();
-    } catch(e) {}
+    await fetch(`/api/chats/${chatId}`, { method:'DELETE' });
+    if (currentChatId === chatId) {
+      currentChatId = null; sessionId = null;
+      document.getElementById('chatHistory').innerHTML = '<div class="msg ai">Wähle oder erstelle einen Chat.</div>';
+    }
+    loadChatList();
   }
 
   async function deleteAllChats() {
     if (!confirm('ALLE Chats löschen?')) return;
-    try {
-      await fetch('/api/chats', { method: 'DELETE' });
-      currentChatId = null; sessionId = null;
-      document.getElementById('chatHistory').innerHTML = '<div class="msg ai">Alle gelöscht. Erstelle einen neuen Chat!</div>';
-      loadChatList();
-    } catch(e) {}
+    await fetch('/api/chats', { method:'DELETE' });
+    currentChatId = null; sessionId = null;
+    document.getElementById('chatHistory').innerHTML = '<div class="msg ai">Alle gelöscht. Neuen Chat erstellen!</div>';
+    loadChatList();
   }
 
   loadChatList();
 
-  // ====== SENDEN ======
+  // ====== NACHRICHT SENDEN (mit optionaler Web-Suche) ======
   async function sendPrompt() {
-    const provider      = document.getElementById('provider').value;
-    const apiKey        = document.getElementById('apiKey').value.trim();
-    const model         = document.getElementById('modelSelect').value;
-    const directory     = document.getElementById('directory').value.trim();
-    const prompt        = document.getElementById('promptInput').value.trim();
-    const contextPath   = document.getElementById('contextPath').value.trim();
-    const allowRoot     = document.getElementById('allowRoot').checked;
+    if (isSearching) return; // Verhindert Doppelklick
+
+    const provider        = document.getElementById('provider').value;
+    const apiKey          = document.getElementById('apiKey').value.trim();
+    const model           = document.getElementById('modelSelect').value;
+    const directory       = document.getElementById('directory').value.trim();
+    const promptRaw       = document.getElementById('promptInput').value.trim();
+    const contextPath     = document.getElementById('contextPath').value.trim();
+    const allowRoot       = document.getElementById('allowRoot').checked;
     const enableWebSearch = document.getElementById('enableWebSearch').checked;
 
-    if (!prompt) return;
+    if (!promptRaw) return;
     if (!apiKey && !sessionId && provider !== 'ollama') { alert('⚠️ API Key fehlt!'); return; }
     if (!currentChatId) await createNewChat();
 
-    addMsg('user', prompt);
-    document.getElementById('promptInput').value  = '';
-    document.getElementById('contextPath').value  = '';
+    // Nachricht im Chat anzeigen (immer das Original)
+    addMsg('user', promptRaw);
+    document.getElementById('promptInput').value = '';
+    document.getElementById('contextPath').value = '';
 
+    let extraContext = '';
+
+    // ---- MODUS 1: Manueller Suchmodus (Toolbar-Button) ----
+    // User hat auf "🔍 Web-Suche" geklickt → nächste Nachricht wird gesucht
+    if (searchMode) {
+      isSearching = true;
+      document.getElementById('btnSend').classList.add('searching');
+      document.getElementById('btnSend').innerText = '🔍...';
+
+      try {
+        const sRes = await fetch('/api/search', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ query: promptRaw, maxResults: 8 })
+        });
+        if (sRes.ok) {
+          const sData = await sRes.json();
+          extraContext = sData.formatted || '';
+          addLog(`🔍 ${sData.count} Ergebnisse für "${promptRaw}"`);
+        }
+      } catch(e) {
+        addLog('⚠️ Web-Suche fehlgeschlagen: ' + e.message);
+      }
+
+      // Suchmodus nach Senden automatisch deaktivieren
+      searchMode = false;
+      document.getElementById('btnSearch').classList.remove('active');
+      document.getElementById('searchBadge').classList.remove('visible');
+      document.getElementById('promptInput').classList.remove('search-mode');
+      document.getElementById('promptInput').placeholder = "z.B. 'Erkläre mir Quantum Computing'";
+      document.getElementById('btnSend').classList.remove('searching');
+      document.getElementById('btnSend').innerText = 'Senden';
+      isSearching = false;
+    }
+
+    // ---- NACHRICHT AN KI SENDEN ----
+    // extraContext enthält die Suchergebnisse (unsichtbar für den User, aber KI sieht sie)
     if (!sessionId) {
       const res = await fetch('/api/start', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider, apiKey, model, directory, prompt, contextPath, allowRoot, enableWebSearch })
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          provider, apiKey, model, directory,
+          prompt: promptRaw,
+          contextPath: contextPath || '',
+          // Suchergebnisse kommen als initialContextData = für die KI sichtbar, für User unsichtbar
+          searchContext: extraContext,
+          allowRoot,
+          enableWebSearch
+        })
       });
-      if (res.status === 401) { alert('Session abgelaufen!'); window.location.href = '/'; return; }
+      if (res.status === 401) { alert('Session abgelaufen!'); window.location.href='/'; return; }
       const d = await res.json();
       sessionId = d.sessionId;
     } else {
+      // Bei bestehender Session: Suchergebnisse als Kontext zur Nachricht hinzufügen
       await fetch('/api/chat', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId, prompt, contextPath })
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ sessionId, prompt: promptRaw, contextPath, searchContext: extraContext })
       });
     }
   }
@@ -513,8 +541,8 @@
   async function updateSystem() {
     if (!confirm('🔄 Updaten?')) return;
     addLog('Suche Updates...');
-    const res = await fetch('/api/update', { method: 'POST' });
-    if (res.status === 401) { alert('Session abgelaufen!'); window.location.href = '/'; return; }
+    const res = await fetch('/api/update', { method:'POST' });
+    if (res.status === 401) { alert('Session abgelaufen!'); window.location.href='/'; return; }
     const d = await res.json();
     if (d.success) { addLog(`✔️ ${d.message}`); alert('✔️ Update!'); }
     else           { addLog(`❌ ${d.error}`);   alert(`❌ ${d.error}`); }
