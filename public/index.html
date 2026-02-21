@@ -8,14 +8,11 @@
     :root{--bg:#0d0d0d;--surface:#1a1a1a;--border:#2d2d2d;--accent:#00d4ff;--green:#00ff88;--red:#ff4545;--text:#e0e0e0;--muted:#888;}
     *{box-sizing:border-box;margin:0;padding:0;}
     body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;}
-
     header{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;gap:12px;}
     header h1{font-size:1rem;color:var(--accent);}
     .header-btn{background:#222;color:#fff;border:1px solid #444;border-radius:4px;padding:4px 10px;cursor:pointer;font-size:0.8rem;}
     .logout-btn{margin-left:auto;background:var(--red);color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:0.8rem;}
-
     .layout{display:flex;flex:1;overflow:hidden;}
-
     .chat-list-sidebar{width:260px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;}
     .chat-list-header{padding:14px;border-bottom:1px solid var(--border);}
     .new-chat-btn{width:100%;background:var(--accent);color:#000;border:none;border-radius:6px;padding:9px;font-weight:bold;cursor:pointer;font-size:.875rem;}
@@ -28,34 +25,28 @@
     .chat-item:hover .chat-item-delete{opacity:1;}
     .chat-list-footer{padding:10px;border-top:1px solid var(--border);}
     .delete-all-btn{width:100%;background:#2a0000;color:var(--red);border:1px solid var(--red);border-radius:6px;padding:7px;font-size:.78rem;cursor:pointer;}
-
     .main-content{flex:1;display:flex;flex-direction:column;background:var(--bg);position:relative;}
     .chat-history{flex:1;padding:18px;overflow-y:auto;display:flex;flex-direction:column;gap:14px;}
     .msg{max-width:80%;padding:11px 15px;border-radius:12px;font-size:.93rem;line-height:1.55;white-space:pre-wrap;}
     .msg.user{background:var(--accent);color:#000;align-self:flex-end;border-bottom-right-radius:2px;}
     .msg.ai{background:var(--surface);border:1px solid var(--border);align-self:flex-start;border-bottom-left-radius:2px;}
     .msg.error{background:#2a0000;border:1px solid var(--red);color:#ff8888;align-self:flex-start;font-size:.85rem;}
-
     .chat-input-area{padding:14px;background:var(--surface);border-top:1px solid var(--border);display:flex;flex-direction:column;gap:8px;}
     .input-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
-
     .wsearch-badge{display:none;background:#0a2a1a;border:1px solid var(--green);color:var(--green);border-radius:6px;padding:4px 10px;font-size:.78rem;align-items:center;gap:6px;}
     .wsearch-badge.visible{display:flex;}
-    .wsearch-badge-close{background:none;border:none;color:var(--green);cursor:pointer;font-size:1rem;line-height:1;}
-
+    .wsearch-badge-close{background:none;border:none;color:var(--green);cursor:pointer;font-size:1rem;}
     .toolbar-btn{background:#222;border:1px solid #444;color:#fff;border-radius:6px;padding:5px 10px;font-size:.78rem;cursor:pointer;}
     .toolbar-btn:hover{border-color:var(--accent);color:var(--accent);}
     .toolbar-btn.active{background:#0a2020;border-color:var(--green);color:var(--green);}
     .hint{font-size:.7rem;color:var(--muted);}
-    .context-box{display:flex;gap:8px;}
-    .context-box input{flex:1;background:#222;border:1px dashed var(--muted);border-radius:6px;padding:5px 10px;font-size:.8rem;color:#fff;}
+    .context-box input{width:100%;background:#222;border:1px dashed var(--muted);border-radius:6px;padding:5px 10px;font-size:.8rem;color:#fff;}
     .chat-input-row{display:flex;gap:10px;}
     .chat-input-row textarea{flex:1;background:#111;border:1px solid var(--border);border-radius:8px;color:#fff;padding:11px;min-height:52px;resize:vertical;outline:none;font-size:.9rem;transition:border-color .2s;}
     .chat-input-row textarea.search-mode{border-color:var(--green);}
     .btn-send{background:var(--accent);color:#000;border:none;border-radius:8px;padding:0 18px;font-weight:bold;cursor:pointer;font-size:.9rem;}
     .btn-send.searching{background:var(--green);animation:pulse .8s infinite;}
     @keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
-
     .config-sidebar{width:290px;background:var(--surface);border-left:1px solid var(--border);padding:18px;overflow-y:auto;}
     .config-sidebar h3{font-size:.88rem;color:var(--accent);margin-bottom:10px;}
     label{display:block;font-size:.78rem;color:var(--muted);margin:11px 0 4px;}
@@ -77,58 +68,46 @@
   </style>
 </head>
 <body>
-
 <header>
-  <h1>🤖 KI-Agent v0.2</h1>
+  <h1>🤖 KI-Agent v0.3</h1>
   <button onclick="toggleConsole()" class="header-btn">📟 Terminal</button>
   <button class="logout-btn" onclick="logout()">Abmelden</button>
 </header>
-
 <div class="layout">
   <div class="chat-list-sidebar">
     <div class="chat-list-header"><button class="new-chat-btn" onclick="createNewChat()">➕ Neuer Chat</button></div>
     <div class="chat-list" id="chatList"></div>
     <div class="chat-list-footer"><button class="delete-all-btn" onclick="deleteAllChats()">🗑️ Alle löschen</button></div>
   </div>
-
   <div class="main-content">
     <div class="chat-history" id="chatHistory">
       <div class="msg ai">Hallo! Sag mir was ich tun soll.
 
-💡 Tipp: Aktiviere 🌐 Web-Suche (Auto) – dann such ich selbst im Internet!</div>
+💡 Tipp: Aktiviere 🌐 Web-Suche (Auto) oder klick 🔍 Web-Suche für manuelle Suche!</div>
     </div>
-
     <div class="chat-input-area">
       <div class="input-toolbar">
-        <button class="toolbar-btn" id="btnSearch" onclick="toggleSearchMode()" title="Nächste Nachricht als Web-Suche">
-          🔍 Web-Suche
-        </button>
+        <button class="toolbar-btn" id="btnSearch" onclick="toggleSearchMode()">🔍 Web-Suche</button>
         <div class="wsearch-badge" id="searchBadge">
-          🌐 Suchmodus – Nachricht wird gegoogelt
+          🌐 Suchmodus
           <button class="wsearch-badge-close" onclick="toggleSearchMode()">×</button>
         </div>
         <span class="hint">Strg+Enter = Senden</span>
       </div>
-
       <div class="hint">📁 Datei/Ordner als Kontext (optional)</div>
       <div class="context-box">
         <input type="text" id="contextPath" placeholder="z.B. /var/www/html/index.html">
       </div>
-
       <div class="chat-input-row">
-        <textarea id="promptInput"
-          placeholder="z.B. 'Erkläre mir Quantum Computing' oder 'Erstelle eine Webseite'"
+        <textarea id="promptInput" placeholder="z.B. 'Erkläre mir Quantum Computing'"
           onkeydown="if(event.ctrlKey&&event.key==='Enter'){sendPrompt();}"></textarea>
         <button class="btn-send" id="btnSend" onclick="sendPrompt()">Senden</button>
       </div>
     </div>
-
     <div class="console-overlay" id="console"></div>
   </div>
-
   <div class="config-sidebar">
     <h3>⚙️ Konfiguration</h3>
-
     <label>Provider</label>
     <select id="provider" onchange="providerChanged()">
       <option value="groq">Groq 🆓</option>
@@ -143,15 +122,11 @@
       <option value="ollama">Ollama (Lokal 🆓)</option>
       <option value="ollama-online">Ollama (Online/Custom)</option>
     </select>
-
-    <label id="apiKeyLabel">API Key (verschlüsselt)</label>
+    <label id="apiKeyLabel">API Key</label>
     <input type="password" id="apiKey" placeholder="API Key..." onchange="apiKeyChanged()">
-
     <label>Modell <span id="modelLoading" class="loading-text" style="display:none;">(lädt...)</span></label>
     <select id="modelSelect"><option value="">Standard</option></select>
-
     <button class="save-btn" onclick="saveSettings()">💾 Speichern</button>
-
     <div class="section-title">Arbeitsbereich</div>
     <select id="dirPreset" onchange="document.getElementById('directory').value=this.value">
       <option value="/var/www/html">Webserver</option>
@@ -160,417 +135,262 @@
       <option value="/">System-Root</option>
     </select>
     <input type="text" id="directory" value="/var/www/html" style="margin-top:6px;">
-
     <div class="feature-box box-green">
-      <label>
-        <input type="checkbox" id="enableWebSearch">
-        <strong>🌐 Web-Suche (Auto)</strong>
-      </label>
-      <small>
-        ✅ KI sucht <em>automatisch</em> wenn nötig<br>
-        ✅ Kein API-Key, 100% kostenlos<br>
-        ✅ DuckDuckGo + SearXNG
-      </small>
+      <label><input type="checkbox" id="enableWebSearch"><strong>🌐 Web-Suche (Auto)</strong></label>
+      <small>✅ KI sucht automatisch &bull; kostenlos &bull; DuckDuckGo</small>
     </div>
-
     <div class="feature-box box-red">
-      <label>
-        <input type="checkbox" id="allowRoot" onchange="rootModeChanged()">
-        <strong>🔴 Root-Modus</strong>
-      </label>
-      <small>⚠️ Volle System-Kontrolle: apt, systemctl, reboot...</small>
+      <label><input type="checkbox" id="allowRoot" onchange="rootModeChanged()"><strong>🔴 Root-Modus</strong></label>
+      <small>⚠️ apt, systemctl, reboot...</small>
     </div>
-
     <hr style="border:0;border-top:1px solid var(--border);margin:16px 0 8px;">
-    <button onclick="updateSystem()" style="width:100%;background:#222;color:var(--green);border:1px solid var(--green);border-radius:6px;padding:8px;font-size:.78rem;cursor:pointer;font-weight:bold;">♻️ System updaten</button>
+    <button onclick="updateSystem()" style="width:100%;background:#222;color:var(--green);border:1px solid var(--green);border-radius:6px;padding:8px;font-size:.78rem;cursor:pointer;">♻️ System updaten</button>
   </div>
 </div>
-
 <script>
-  let sessionId     = null;
-  let currentChatId = null;
-  let ws;
-  let allApiKeys    = {};
-  let searchMode    = false;
-  let isSearching   = false;
+  let sessionId = null, currentChatId = null, ws;
+  let allApiKeys = {}, searchMode = false, isSending = false;
 
-  // Max. Größe für searchContext (40KB) – verhindert NGINX 400-Fehler
-  const MAX_CONTEXT_BYTES = 40000;
-
-  // ====== HILFSFUNKTIONEN ======
-
-  /**
-   * Sicheres fetch + JSON parsen.
-   * Gibt { ok, status, data, rawText } zurück.
-   * Wirft NIE – Fehler kommen als { ok:false, ... }.
-   */
-  async function safeFetch(url, options = {}) {
+  // === safeFetch: crasht nie, liest body einmal als Text ===
+  async function safeFetch(url, opts={}) {
     try {
-      const res     = await fetch(url, options);
-      const rawText = await res.text();   // body nur einmal lesen
-      let   data    = null;
-      try   { data = JSON.parse(rawText); } catch(e) { /* kein JSON */ }
-      return { ok: res.ok, status: res.status, data, rawText };
-    } catch(netErr) {
-      return { ok: false, status: 0, data: null, rawText: '', netError: netErr.message };
+      const r = await fetch(url, opts);
+      const t = await r.text();
+      let d = null; try { d = JSON.parse(t); } catch(e) {}
+      return { ok:r.ok, status:r.status, data:d, raw:t };
+    } catch(e) {
+      return { ok:false, status:0, data:null, raw:'', net:e.message };
     }
   }
 
   function addMsg(sender, text) {
     const h = document.getElementById('chatHistory');
     const d = document.createElement('div');
-    d.className = `msg ${sender}`;
-    d.innerText  = text;
-    h.appendChild(d);
-    h.scrollTop = h.scrollHeight;
-    if (currentChatId) saveMessageToChat(currentChatId, { sender, text, timestamp: Date.now() });
+    d.className = `msg ${sender}`; d.innerText = text;
+    h.appendChild(d); h.scrollTop = h.scrollHeight;
+    if (currentChatId) saveMsgToChat({ sender, text, timestamp: Date.now() });
   }
-
   function addError(text) {
     const h = document.getElementById('chatHistory');
     const d = document.createElement('div');
-    d.className = 'msg error';
-    d.innerText  = text;
-    h.appendChild(d);
-    h.scrollTop = h.scrollHeight;
+    d.className = 'msg error'; d.innerText = text;
+    h.appendChild(d); h.scrollTop = h.scrollHeight;
   }
-
-  function addLog(text, isError = false) {
+  function addLog(text, err=false) {
     const c = document.getElementById('console');
     const d = document.createElement('div');
-    d.className = isError ? 'log-error' : 'log-info';
-    d.innerText = text;
-    c.appendChild(d);
-    c.scrollTop = c.scrollHeight;
-    // Konsole bei Fehler automatisch öffnen
-    if (isError) c.style.display = 'block';
+    d.className = err ? 'log-error' : 'log-info'; d.innerText = text;
+    c.appendChild(d); c.scrollTop = c.scrollHeight;
+    if (err) c.style.display = 'block';
+  }
+  function showErr(label, r) {
+    let m = `HTTP ${r.status}`;
+    if (r.net)          m = 'Netzwerk: ' + r.net;
+    else if (r.data?.error) m = r.data.error;
+    else if (r.raw)     m = r.raw.substring(0,200);
+    addError(`❌ ${label} (${m})\n\nTipp: 📟 Terminal oben → Logs ansehen\njournalctl -u ki-agent -n 50`);
+    addLog(`❌ ${label}: ${m}`, true);
   }
 
-  function handleApiError(label, result) {
-    let msg = `HTTP ${result.status}`;
-    if (result.netError)             msg = `Netzwerk-Fehler: ${result.netError}`;
-    else if (result.data?.error)     msg = result.data.error;
-    else if (result.rawText)         msg = result.rawText.substring(0, 300);
-    addError(`❌ ${label} fehlgeschlagen (${msg})\n\nTipps:\n• Terminal öffnen (📟 Button oben) für Details\n• Server neu starten: systemctl restart ki-agent\n• Logs: journalctl -u ki-agent -n 50`);
-    addLog(`❌ ${label}: ${msg}`, true);
-  }
-
-  // ====== SUCHMODUS ======
+  function toggleConsole() { const c=document.getElementById('console'); c.style.display=c.style.display==='block'?'none':'block'; }
   function toggleSearchMode() {
     searchMode = !searchMode;
     document.getElementById('btnSearch').classList.toggle('active', searchMode);
     document.getElementById('searchBadge').classList.toggle('visible', searchMode);
     const ta = document.getElementById('promptInput');
     ta.classList.toggle('search-mode', searchMode);
-    ta.placeholder = searchMode
-      ? '🔍 Suchbegriff eingeben... (wird gegoogelt + an KI gesendet)'
-      : "z.B. 'Erkläre mir Quantum Computing'";
+    ta.placeholder = searchMode ? '🔍 Suchbegriff...' : "z.B. 'Erkläre mir Quantum Computing'";
     if (searchMode) ta.focus();
   }
-
   function rootModeChanged() {
-    if (document.getElementById('allowRoot').checked &&
-        !confirm('⚠️ WARNUNG!\n\nRoot-Modus = VOLLE System-Kontrolle!\n\nFortfahren?'))
+    if (document.getElementById('allowRoot').checked && !confirm('⚠️ Root-Modus = volle System-Kontrolle!\nFortfahren?'))
       document.getElementById('allowRoot').checked = false;
   }
 
-  function toggleConsole() {
-    const c = document.getElementById('console');
-    c.style.display = c.style.display === 'block' ? 'none' : 'block';
-  }
-
-  // ====== WEBSOCKET ======
+  // === WebSocket ===
   function connectWS() {
-    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-    ws = new WebSocket(`${proto}://${location.host}`);
-    ws.onmessage = (e) => {
-      try {
-        const msg = JSON.parse(e.data);
-        if (msg.type === 'chat') addMsg(msg.sender, msg.message);
-        if (msg.type === 'log')  addLog(msg.message);
-      } catch(err) {}
-    };
+    ws = new WebSocket(`${location.protocol==='https:'?'wss':'ws'}://${location.host}`);
+    ws.onmessage = e => { try { const m=JSON.parse(e.data); if(m.type==='chat')addMsg(m.sender,m.message); if(m.type==='log')addLog(m.message); } catch(e){} };
     ws.onclose = () => setTimeout(connectWS, 3000);
   }
   connectWS();
 
-  async function logout() {
-    await safeFetch('/api/logout', { method: 'POST' });
-    window.location.href = '/';
-  }
+  async function logout() { await safeFetch('/api/logout',{method:'POST'}); window.location.href='/'; }
 
-  // ====== EINSTELLUNGEN ======
-  function updateApiKeyPlaceholder() {
-    const p = document.getElementById('provider').value;
-    const ki = document.getElementById('apiKey');
-    const kl = document.getElementById('apiKeyLabel');
-    if      (p === 'ollama')        { ki.placeholder = 'Nicht nötig';           kl.innerText = 'API Key (nicht nötig)'; }
-    else if (p === 'ollama-online') { ki.placeholder = 'http://server:11434'; kl.innerText = 'Ollama Server URL'; }
-    else                            { ki.placeholder = 'API Key eingeben...';   kl.innerText = 'API Key (verschlüsselt)'; }
+  // === Einstellungen ===
+  function updateKeyLabel() {
+    const p=document.getElementById('provider').value, ki=document.getElementById('apiKey'), kl=document.getElementById('apiKeyLabel');
+    if(p==='ollama'){ki.placeholder='Nicht nötig';kl.innerText='API Key (nicht nötig)';}
+    else if(p==='ollama-online'){ki.placeholder='http://server:11434';kl.innerText='Ollama URL';}
+    else{ki.placeholder='API Key...';kl.innerText='API Key';}
   }
-
   async function loadSettings() {
-    const r = await safeFetch('/api/user/settings');
-    if (!r.ok || !r.data) return;
-    allApiKeys = r.data.apiKeys || {};
-    document.getElementById('provider').value = r.data.provider || 'groq';
-    document.getElementById('apiKey').value   = r.data.apiKey   || '';
-    updateApiKeyPlaceholder();
-    if (r.data.provider === 'ollama' || r.data.apiKey) await loadModels();
-    if (r.data.model) document.getElementById('modelSelect').value = r.data.model;
+    const r = await safeFetch('/api/user/settings'); if(!r.ok||!r.data) return;
+    allApiKeys=r.data.apiKeys||{};
+    document.getElementById('provider').value=r.data.provider||'groq';
+    document.getElementById('apiKey').value=r.data.apiKey||'';
+    updateKeyLabel();
+    if(r.data.provider==='ollama'||r.data.apiKey) await loadModels();
+    if(r.data.model) document.getElementById('modelSelect').value=r.data.model;
   }
   loadSettings();
-
   function providerChanged() {
-    const p = document.getElementById('provider').value;
-    document.getElementById('apiKey').value = allApiKeys[p] || '';
-    updateApiKeyPlaceholder();
-    const k = document.getElementById('apiKey').value;
-    if (k || p === 'ollama') loadModels();
-    else document.getElementById('modelSelect').innerHTML = '<option value="">Standard</option>';
+    const p=document.getElementById('provider').value;
+    document.getElementById('apiKey').value=allApiKeys[p]||'';
+    updateKeyLabel();
+    if(allApiKeys[p]||p==='ollama') loadModels();
+    else document.getElementById('modelSelect').innerHTML='<option value="">Standard</option>';
   }
-
-  function apiKeyChanged() {
-    const p = document.getElementById('provider').value;
-    allApiKeys[p] = document.getElementById('apiKey').value.trim();
-    if (allApiKeys[p] || p === 'ollama') loadModels();
-  }
-
+  function apiKeyChanged() { const p=document.getElementById('provider').value; allApiKeys[p]=document.getElementById('apiKey').value.trim(); if(allApiKeys[p]||p==='ollama') loadModels(); }
   async function loadModels() {
-    const provider = document.getElementById('provider').value;
-    let   apiKey   = document.getElementById('apiKey').value.trim();
-    if (!apiKey && provider !== 'ollama') return;
-    if (provider === 'ollama') apiKey = 'local';
-    const loading = document.getElementById('modelLoading');
-    const select  = document.getElementById('modelSelect');
-    loading.style.display = 'inline';
-    select.innerHTML = '<option>Lädt...</option>';
-    const r = await safeFetch('/api/models', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ provider, apiKey })
-    });
-    if (r.ok && r.data?.models) {
-      select.innerHTML = '<option value="">Standard</option>';
-      r.data.models.forEach(m => {
-        const o = document.createElement('option');
-        o.value    = m.id;
-        o.innerText = (m.name || m.id) + (m.free ? ' 🆓' : '');
-        select.appendChild(o);
-      });
-    } else {
-      select.innerHTML = '<option>Fehler</option>';
-    }
-    loading.style.display = 'none';
+    const prov=document.getElementById('provider').value;
+    let key=document.getElementById('apiKey').value.trim();
+    if(!key&&prov!=='ollama') return;
+    if(prov==='ollama') key='local';
+    const ld=document.getElementById('modelLoading'), sel=document.getElementById('modelSelect');
+    ld.style.display='inline'; sel.innerHTML='<option>Lädt...</option>';
+    const r=await safeFetch('/api/models',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({provider:prov,apiKey:key})});
+    if(r.ok&&r.data?.models){
+      sel.innerHTML='<option value="">Standard</option>';
+      r.data.models.forEach(m=>{const o=document.createElement('option');o.value=m.id;o.innerText=(m.name||m.id)+(m.free?' 🆓':'');sel.appendChild(o);});
+    } else sel.innerHTML='<option>Fehler</option>';
+    ld.style.display='none';
   }
-
   async function saveSettings() {
-    const provider = document.getElementById('provider').value;
-    const apiKey   = document.getElementById('apiKey').value.trim();
-    const model    = document.getElementById('modelSelect').value;
-    allApiKeys[provider] = apiKey;
-    const r = await safeFetch('/api/user/settings', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ provider, apiKey, model })
-    });
-    if (r.ok) alert('✔️ Gespeichert!');
-    else      alert('❌ ' + (r.data?.error || r.rawText || 'Fehler'));
+    const prov=document.getElementById('provider').value, key=document.getElementById('apiKey').value.trim(), mdl=document.getElementById('modelSelect').value;
+    allApiKeys[prov]=key;
+    const r=await safeFetch('/api/user/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({provider:prov,apiKey:key,model:mdl})});
+    r.ok ? alert('✔️ Gespeichert!') : alert('❌ '+(r.data?.error||'Fehler'));
   }
 
-  // ====== CHAT-VERWALTUNG ======
+  // === Chat-Verwaltung ===
   async function loadChatList() {
-    const r = await safeFetch('/api/chats');
-    if (!r.ok || !r.data) return;
-    const list = document.getElementById('chatList');
-    list.innerHTML = '';
-    if (!r.data.chats.length) {
-      list.innerHTML = '<div style="color:#666;font-size:.78rem;text-align:center;padding:18px;">Keine Chats</div>';
-      return;
-    }
-    r.data.chats.forEach(c => {
-      const item = document.createElement('div');
-      item.className = 'chat-item' + (c.id === currentChatId ? ' active' : '');
-      item.innerHTML = `<div class="chat-item-title">${c.title}</div><button class="chat-item-delete" onclick="deleteChat(${c.id},event)">×</button>`;
-      item.onclick = (e) => { if (!e.target.classList.contains('chat-item-delete')) loadChat(c.id); };
-      list.appendChild(item);
+    const r=await safeFetch('/api/chats'); if(!r.ok||!r.data) return;
+    const list=document.getElementById('chatList'); list.innerHTML='';
+    if(!r.data.chats.length){list.innerHTML='<div style="color:#666;font-size:.78rem;text-align:center;padding:18px;">Keine Chats</div>';return;}
+    r.data.chats.forEach(c=>{
+      const el=document.createElement('div'); el.className='chat-item'+(c.id===currentChatId?' active':'');
+      el.innerHTML=`<div class="chat-item-title">${c.title}</div><button class="chat-item-delete" onclick="deleteChat(${c.id},event)">×</button>`;
+      el.onclick=e=>{if(!e.target.classList.contains('chat-item-delete'))loadChat(c.id);};
+      list.appendChild(el);
     });
   }
-
   async function createNewChat() {
-    const r = await safeFetch('/api/chats/new', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        title: 'Chat ' + new Date().toLocaleTimeString('de-DE'),
-        message: { sender:'ai', text:'Hallo! Sag mir was ich tun soll.', timestamp: Date.now() }
-      })
-    });
-    if (r.ok && r.data?.chatId) {
-      currentChatId = r.data.chatId; sessionId = null;
-      await loadChatList(); await loadChat(r.data.chatId);
-    }
+    const r=await safeFetch('/api/chats/new',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({title:'Chat '+new Date().toLocaleTimeString('de-DE'),message:{sender:'ai',text:'Hallo! Sag mir was ich tun soll.',timestamp:Date.now()}})});
+    if(r.ok&&r.data?.chatId){currentChatId=r.data.chatId;sessionId=null;await loadChatList();await loadChat(r.data.chatId);}
   }
-
-  async function loadChat(chatId) {
-    const r = await safeFetch(`/api/chats/${chatId}`);
-    if (!r.ok || !r.data) return;
-    currentChatId = chatId; sessionId = null;
-    const h = document.getElementById('chatHistory');
-    h.innerHTML = '';
-    r.data.chat.messages.forEach(m => {
-      const el = document.createElement('div');
-      el.className = `msg ${m.sender}`;
-      el.innerText = m.text;
-      h.appendChild(el);
-    });
-    h.scrollTop = h.scrollHeight;
+  async function loadChat(id) {
+    const r=await safeFetch(`/api/chats/${id}`); if(!r.ok||!r.data) return;
+    currentChatId=id; sessionId=null;
+    const h=document.getElementById('chatHistory'); h.innerHTML='';
+    r.data.chat.messages.forEach(m=>{const el=document.createElement('div');el.className=`msg ${m.sender}`;el.innerText=m.text;h.appendChild(el);});
+    h.scrollTop=h.scrollHeight; loadChatList();
+  }
+  async function saveMsgToChat(msg) {
+    if(currentChatId) await safeFetch(`/api/chats/${currentChatId}/message`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg})});
+  }
+  async function deleteChat(id,e) {
+    e.stopPropagation(); if(!confirm('Löschen?')) return;
+    await safeFetch(`/api/chats/${id}`,{method:'DELETE'});
+    if(currentChatId===id){currentChatId=null;sessionId=null;document.getElementById('chatHistory').innerHTML='<div class="msg ai">Neuen Chat erstellen!</div>';}
     loadChatList();
   }
-
-  async function saveMessageToChat(chatId, msg) {
-    await safeFetch(`/api/chats/${chatId}/message`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ message: msg })
-    });
-  }
-
-  async function deleteChat(chatId, event) {
-    event.stopPropagation();
-    if (!confirm('Chat löschen?')) return;
-    await safeFetch(`/api/chats/${chatId}`, { method:'DELETE' });
-    if (currentChatId === chatId) {
-      currentChatId = null; sessionId = null;
-      document.getElementById('chatHistory').innerHTML = '<div class="msg ai">Wähle oder erstelle einen Chat.</div>';
-    }
-    loadChatList();
-  }
-
   async function deleteAllChats() {
-    if (!confirm('ALLE Chats löschen?')) return;
-    await safeFetch('/api/chats', { method:'DELETE' });
-    currentChatId = null; sessionId = null;
-    document.getElementById('chatHistory').innerHTML = '<div class="msg ai">Alle gelöscht.</div>';
-    loadChatList();
+    if(!confirm('ALLE löschen?')) return;
+    await safeFetch('/api/chats',{method:'DELETE'});
+    currentChatId=null;sessionId=null;document.getElementById('chatHistory').innerHTML='<div class="msg ai">Gelöscht.</div>';loadChatList();
   }
-
   loadChatList();
 
-  // ====== HAUPTFUNKTION: NACHRICHT SENDEN ======
+  // === HAUPTFUNKTION: Senden ===
   async function sendPrompt() {
-    if (isSearching) return;
+    if(isSending) return;
+    const prov   = document.getElementById('provider').value;
+    const apiKey = document.getElementById('apiKey').value.trim();
+    const model  = document.getElementById('modelSelect').value;
+    const dir    = document.getElementById('directory').value.trim();
+    const prompt = document.getElementById('promptInput').value.trim();
+    const ctxP   = document.getElementById('contextPath').value.trim();
+    const root   = document.getElementById('allowRoot').checked;
+    const wsearch = document.getElementById('enableWebSearch').checked;
 
-    const provider        = document.getElementById('provider').value;
-    const apiKey          = document.getElementById('apiKey').value.trim();
-    const model           = document.getElementById('modelSelect').value;
-    const directory       = document.getElementById('directory').value.trim();
-    const promptRaw       = document.getElementById('promptInput').value.trim();
-    const contextPath     = document.getElementById('contextPath').value.trim();
-    const allowRoot       = document.getElementById('allowRoot').checked;
-    const enableWebSearch = document.getElementById('enableWebSearch').checked;
+    if(!prompt) return;
+    if(!apiKey&&!sessionId&&prov!=='ollama'){addError('⚠️ API Key fehlt – bitte eingeben und Speichern klicken!');return;}
+    if(!currentChatId) await createNewChat();
 
-    if (!promptRaw) return;
-    if (!apiKey && !sessionId && provider !== 'ollama') {
-      addError('⚠️ API Key fehlt! Bitte in der Sidebar einträgen und speichern.');
-      return;
-    }
+    addMsg('user', prompt);
+    document.getElementById('promptInput').value='';
+    document.getElementById('contextPath').value='';
 
-    // Chat erstellen falls noch keiner existiert
-    if (!currentChatId) await createNewChat();
+    // Suchergebnisse als ctxId (serverseitig gecacht)
+    let ctxId = null;
 
-    // Nachricht anzeigen (User sieht immer seinen Originaltext)
-    addMsg('user', promptRaw);
-    document.getElementById('promptInput').value = '';
-    document.getElementById('contextPath').value = '';
+    if(searchMode) {
+      isSending=true;
+      const btn=document.getElementById('btnSend');
+      btn.classList.add('searching'); btn.innerText='🔍...';
+      addLog(`🔍 Suche: "${prompt}"`);
 
-    let extraContext = '';
-
-    // ---- SCHRITT 1: Web-Suche (wenn Suchmodus aktiv) ----
-    if (searchMode) {
-      isSearching = true;
-      const btn = document.getElementById('btnSend');
-      btn.classList.add('searching');
-      btn.innerText = '🔍...';
-      addLog(`🔍 Suche: "${promptRaw}"`);
-
-      const sr = await safeFetch('/api/search', {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ query: promptRaw, maxResults: 6 })
+      const sr = await safeFetch('/api/search',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({query:prompt, maxResults:6})
       });
-
-      if (sr.ok && sr.data?.formatted) {
-        // Suchergebnisse auf max. 40KB begrenzen (verhindert NGINX 400-Fehler!)
-        extraContext = sr.data.formatted;
-        if (extraContext.length > MAX_CONTEXT_BYTES) {
-          extraContext = extraContext.substring(0, MAX_CONTEXT_BYTES) + '\n[...gekürzt]';
-          addLog('⚠️ Suchergebnisse auf 40KB gekürzt');
-        }
-        addLog(`✅ ${sr.data.count} Ergebnisse (${Math.round(extraContext.length/1024)}KB)`);
+      if(sr.ok && sr.data?.ctxId) {
+        ctxId = sr.data.ctxId;  // NUR die kleine ID!
+        addLog(`✅ ${sr.data.count} Ergebnisse gecacht (${sr.data.bytes} Bytes, ID: ${ctxId})`);
       } else {
-        addLog('⚠️ Web-Suche fehlgeschlagen: ' + (sr.data?.error || `HTTP ${sr.status}`), true);
+        addLog('⚠️ Suche fehlgeschlagen: '+(sr.data?.error||`HTTP ${sr.status}`), true);
       }
 
       // Suchmodus zurücksetzen
-      searchMode = false;
+      searchMode=false;
       document.getElementById('btnSearch').classList.remove('active');
       document.getElementById('searchBadge').classList.remove('visible');
       document.getElementById('promptInput').classList.remove('search-mode');
-      document.getElementById('promptInput').placeholder = "z.B. 'Erkläre mir Quantum Computing'";
-      btn.classList.remove('searching');
-      btn.innerText = 'Senden';
-      isSearching = false;
+      document.getElementById('promptInput').placeholder="z.B. 'Erkläre mir Quantum Computing'";
+      btn.classList.remove('searching'); btn.innerText='Senden';
+      isSending=false;
     }
 
-    // ---- SCHRITT 2: An KI senden ----
-    addLog(`🚀 Sende an ${provider}${model ? ' (' + model + ')' : ''}...`);
+    addLog(`🚀 Sende an ${prov}${model?' ('+model+')':''}...`);
 
-    if (!sessionId) {
-      // Neue Session starten
-      const r = await safeFetch('/api/start', {
-        method: 'POST', headers: {'Content-Type':'application/json'},
+    if(!sessionId) {
+      // NEUER Request: nur kleine ctxId, keine großen Daten!
+      const r = await safeFetch('/api/start',{
+        method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({
-          provider, apiKey, model, directory,
-          prompt:        promptRaw,
-          contextPath:   contextPath || '',
-          searchContext: extraContext,  // Suchergebnisse kommen hier an!
-          allowRoot,
-          enableWebSearch
+          provider:prov, apiKey, model,
+          directory:dir, prompt,
+          contextPath: ctxP||'',
+          ctxId,           // winzige ID statt großer Strings!
+          allowRoot:root,
+          enableWebSearch:wsearch
         })
       });
-
-      if (r.status === 401) { alert('Session abgelaufen! Bitte neu einloggen.'); window.location.href='/'; return; }
-      if (!r.ok) { handleApiError('Agent-Start', r); return; }
-
-      sessionId = r.data?.sessionId;
+      if(r.status===401){alert('Session abgelaufen!');window.location.href='/';return;}
+      if(!r.ok){showErr('Agent-Start',r);return;}
+      sessionId=r.data?.sessionId;
       addLog(`✅ Session: ${sessionId}`);
-
     } else {
-      // Nachricht zur bestehenden Session
-      const r = await safeFetch('/api/chat', {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({
-          sessionId,
-          prompt:        promptRaw,
-          contextPath:   contextPath || '',
-          searchContext: extraContext
-        })
+      const r = await safeFetch('/api/chat',{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({sessionId, prompt, contextPath:ctxP||'', ctxId})
       });
-
-      if (r.status === 401) { alert('Session abgelaufen!'); window.location.href='/'; return; }
-      if (!r.ok) {
-        // Session evtl. abgelaufen – neu starten
-        addLog('⚠️ Session ungültig, starte neu...');
-        sessionId = null;
-        await sendPrompt();  // Rekursiv mit neuer Session
-        return;
+      if(r.status===401){alert('Session abgelaufen!');window.location.href='/';return;}
+      if(!r.ok){
+        addLog('⚠️ Session abgelaufen, starte neu...');
+        sessionId=null; await sendPrompt();
       }
     }
   }
 
   async function updateSystem() {
-    if (!confirm('🔄 Updaten?')) return;
-    addLog('Update läuft...');
-    const r = await safeFetch('/api/update', { method:'POST' });
-    if (r.status === 401) { alert('Session abgelaufen!'); window.location.href='/'; return; }
-    if (r.ok) { addLog(`✔️ ${r.data?.message}`); alert('✔️ Update fertig!'); }
-    else      { handleApiError('Update', r); }
+    if(!confirm('🔄 Updaten?')) return;
+    addLog('Update...');
+    const r=await safeFetch('/api/update',{method:'POST'});
+    if(r.status===401){alert('Session abgelaufen!');window.location.href='/';return;}
+    r.ok ? (addLog(`✔️ ${r.data?.message}`), alert('✔️ Update fertig!')) : showErr('Update',r);
   }
 </script>
 </body>
