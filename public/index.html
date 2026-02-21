@@ -132,9 +132,11 @@
       <option value="deepseek">DeepSeek</option>
       <option value="cohere">Cohere</option>
       <option value="openrouter">OpenRouter</option>
+      <option value="ollama">Ollama (Lokal)</option>
+      <option value="ollama-online">Ollama (Online/Custom)</option>
     </select>
     
-    <label>API Key (wird verschlüsselt)</label>
+    <label id="apiKeyLabel">API Key (wird verschlüsselt)</label>
     <input type="password" id="apiKey" placeholder="API Key eingeben..." onchange="apiKeyChanged()">
     
     <label>Modell <span id="modelLoading" class="loading-text" style="display:none;">(lädt...)</span></label>
@@ -177,6 +179,7 @@
   let sessionId = null;
   let currentChatId = null;
   let ws;
+  let allApiKeys = {}; // Speichert alle Keys lokal
 
   function updateDirectory() {
     const v = document.getElementById('dirPreset').value;
@@ -239,33 +242,79 @@
     const res = await fetch('/api/user/settings');
     if(res.ok) {
       const data = await res.json();
+      allApiKeys = data.apiKeys || {};
+      
       document.getElementById('provider').value = data.provider || 'groq';
       document.getElementById('apiKey').value = data.apiKey || '';
-      if (data.apiKey) await loadModels();
+      
+      updateApiKeyPlaceholder();
+      
+      // Ollama braucht keinen Key (oder benutzt custom URL)
+      if (data.provider === 'ollama' || data.apiKey) {
+          await loadModels();
+      }
+      
       if (data.model) document.getElementById('modelSelect').value = data.model;
     }
   }
   loadSettings();
 
+  function updateApiKeyPlaceholder() {
+      const p = document.getElementById('provider').value;
+      const keyInput = document.getElementById('apiKey');
+      const keyLabel = document.getElementById('apiKeyLabel');
+      
+      if (p === 'ollama') {
+          keyInput.placeholder = "Nicht benötigt für lokalen Ollama";
+          keyLabel.innerText = "API Key (für lokales Ollama nicht nötig)";
+      } else if (p === 'ollama-online') {
+          keyInput.placeholder = "URL eingeben (z.B. http://server:11434)";
+          keyLabel.innerText = "Ollama URL";
+      } else {
+          keyInput.placeholder = "API Key eingeben...";
+          keyLabel.innerText = "API Key (wird verschlüsselt)";
+      }
+  }
+
   function providerChanged() {
-    const apiKey = document.getElementById('apiKey').value.trim();
-    if (apiKey) loadModels();
+    const provider = document.getElementById('provider').value;
+    const keyInput = document.getElementById('apiKey');
+    
+    // Setze den gespeicherten Key für diesen Provider ins Feld
+    keyInput.value = allApiKeys[provider] || '';
+    
+    updateApiKeyPlaceholder();
+    
+    if (keyInput.value || provider === 'ollama') {
+        loadModels();
+    } else {
+        document.getElementById('modelSelect').innerHTML = '<option value="">Standard-Modell</option>';
+    }
   }
 
   function apiKeyChanged() {
+    const provider = document.getElementById('provider').value;
     const apiKey = document.getElementById('apiKey').value.trim();
-    if (apiKey) loadModels();
+    
+    // Aktualisiere das lokale Objekt sofort
+    allApiKeys[provider] = apiKey;
+    
+    if (apiKey || provider === 'ollama') {
+        loadModels();
+    }
   }
 
   async function loadModels() {
     const provider = document.getElementById('provider').value;
-    const apiKey = document.getElementById('apiKey').value.trim();
-    if (!apiKey) return;
+    let apiKey = document.getElementById('apiKey').value.trim();
+    
+    if (!apiKey && provider !== 'ollama') return;
+    if (provider === 'ollama') apiKey = 'local'; // Dummy-Key damit Backend nicht meckert
 
     const loading = document.getElementById('modelLoading');
     const select = document.getElementById('modelSelect');
     loading.style.display = 'inline';
-    select.innerHTML = '<option value="">Ädt...</option>';
+    select.innerHTML = '<option value="">Lädt...</option>';
 
     try {
       const res = await fetch('/api/models', {
@@ -297,6 +346,9 @@
     const provider = document.getElementById('provider').value;
     const apiKey = document.getElementById('apiKey').value.trim();
     const model = document.getElementById('modelSelect').value;
+    
+    // Lokales Objekt auch nochmal aktualisieren
+    allApiKeys[provider] = apiKey;
     
     try {
       const res = await fetch('/api/user/settings', {
@@ -465,7 +517,7 @@
     const allowRoot   = document.getElementById('allowRoot').checked;
 
     if(!prompt) return;
-    if(!apiKey && !sessionId) { alert("⚠️ API Key fehlt!"); return; }
+    if(!apiKey && !sessionId && provider !== 'ollama') { alert("⚠️ API Key fehlt!"); return; }
     
     // Wenn kein Chat aktiv: Erstelle neuen Chat
     if (!currentChatId) {
